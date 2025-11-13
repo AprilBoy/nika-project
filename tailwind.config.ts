@@ -83,7 +83,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["Montserrat", "system-ui", "-apple-system", "sans-serif"],
+        body: ["Open Sans", "system-ui", "-apple-system", "sans-serif"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
       },
