@@ -4,6 +4,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
+    "dev": "vite --host",
     "start": "vite",
     "build": "vite build",
     "preview": "vite preview",
