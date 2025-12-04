@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Chef Connect Sync Deployment Script
+# Nika Project Deployment Script
 # Usage: ./deploy.sh [environment]
 # Default environment: production
 
 set -e
 
 ENVIRONMENT=${1:-production}
-PROJECT_NAME="chef-connect-sync"
+PROJECT_NAME="nika-project"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 echo "🚀 Starting deployment of $PROJECT_NAME to $ENVIRONMENT environment"
@@ -166,7 +166,7 @@ main() {
 # Handle command line arguments
 case "$1" in
     --help|-h)
-        echo "Chef Connect Sync Deployment Script"
+        echo "Nika Project Deployment Script"
         echo ""
         echo "Usage: $0 [environment]"
         echo ""

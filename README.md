@@ -1,4 +1,4 @@
-# Chef Connect Sync - Landing Page
+# Nika Project - Landing Page
 
 Landing page для консалтинговых услуг Nika Shikhlinskaya, разработанный с использованием React, TypeScript и Tailwind CSS.
 
@@ -45,8 +45,8 @@ sudo chmod +x /usr/local/bin/docker-compose
 1. **Клонирование проекта на сервер**
 
 ```bash
-git clone <your-repo-url> chef-connect-sync
-cd chef-connect-sync
+git clone <your-repo-url> nika-project
+cd nika-project
 ```
 
 2. **Запуск автоматического деплоя**
@@ -79,13 +79,13 @@ docker-compose logs -f
 
 ### Docker контейнеры
 
-- **chef-connect-sync**: Nginx сервер с собранным React приложением
+- **nika-project**: Nginx сервер с собранным React приложением
 - Порт: 80 (HTTP)
 
 ### Структура файлов
 
 ```
-chef-connect-sync/
+nika-project/
 ├── Dockerfile              # Мульти-стадийная сборка
 ├── docker-compose.yml      # Оркестрация контейнеров
 ├── nginx.conf             # Конфигурация Nginx
@@ -126,7 +126,7 @@ curl http://localhost/health
 docker-compose ps
 
 # Просмотр логов
-docker-compose logs -f chef-connect-sync
+docker-compose logs -f nika-project
 ```
 
 ### Метрики производительности
@@ -195,7 +195,7 @@ sudo systemctl stop apache2
 2. **Контейнер не запускается**
 ```bash
 # Проверить логи
-docker-compose logs chef-connect-sync
+docker-compose logs nika-project
 
 # Проверить ресурсы
 docker system df
@@ -204,10 +204,10 @@ docker system df
 3. **Приложение не загружается**
 ```bash
 # Проверить Nginx конфигурацию
-docker exec chef-connect-sync nginx -t
+docker exec nika-project nginx -t
 
 # Проверить статические файлы
-docker exec chef-connect-sync ls -la /usr/share/nginx/html/
+docker exec nika-project ls -la /usr/share/nginx/html/
 ```
 
 ### Логи и отладка
@@ -217,10 +217,10 @@ docker exec chef-connect-sync ls -la /usr/share/nginx/html/
 docker-compose logs -f
 
 # Логи конкретного сервиса
-docker-compose logs -f chef-connect-sync
+docker-compose logs -f nika-project
 
 # Логи Nginx внутри контейнера
-docker exec chef-connect-sync tail -f /var/log/nginx/error.log
+docker exec nika-project tail -f /var/log/nginx/error.log
 ```
 
 ## 📝 Скрипты
@@ -247,13 +247,13 @@ docker exec chef-connect-sync tail -f /var/log/nginx/error.log
 
 ```bash
 # Размер образа
-docker images chef-connect-sync
+docker images nika-project
 
 # Использование ресурсов
 docker stats
 
 # Nginx статистика
-docker exec chef-connect-sync nginx -V
+docker exec nika-project nginx -V
 ```
 
 ---
