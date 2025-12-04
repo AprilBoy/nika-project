@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  chef-connect-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chef-connect-sync-app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
