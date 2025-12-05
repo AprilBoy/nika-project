@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/database';
-import { heroContent, aboutContent, processSteps, clientSegments, serviceFormats, testimonials } from '@/data/content';
 
 // Типы данных
 export interface HeroData {
@@ -20,7 +18,7 @@ export interface AboutData {
 }
 
 export interface ProcessStep {
-  id: number;
+  id: string;
   number: number;
   title: string;
   description: string;
@@ -29,13 +27,14 @@ export interface ProcessStep {
 }
 
 export interface ClientSegment {
-  id: number;
+  id: string;
   title: string;
   description: string;
+  icon?: string;
 }
 
 export interface Service {
-  id: number;
+  id: string;
   title: string;
   price: string;
   duration?: string;
@@ -47,7 +46,7 @@ export interface Service {
 }
 
 export interface Testimonial {
-  id: number;
+  id: string;
   name: string;
   role: string;
   company: string;
@@ -55,7 +54,7 @@ export interface Testimonial {
 }
 
 export interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
   category: string;
@@ -64,10 +63,33 @@ export interface Project {
   featured: boolean;
 }
 
-// Хук для загрузки данных из базы данных
+// API base URL
+const API_BASE_URL = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001';
+
+// Хук для загрузки данных из API
 export const useDatabaseData = () => {
-  const [heroData, setHeroData] = useState<HeroData>(heroContent);
-  const [aboutData, setAboutData] = useState<AboutData>(aboutContent);
+  // Начальные значения для предотвращения ошибок рендеринга
+  const [heroData, setHeroData] = useState<HeroData>({
+    badge: "15+ лет опыта в управлении",
+    title: "Ника Шихлинская",
+    subtitle: "Системный операционный партнер",
+    description: "Превращаю хаос в работающие процессы | Запускаю проекты, строю команды, чиню что сломано | Позабочусь о ваших интересах, как о своих",
+    primaryCTA: "Связаться",
+    secondaryCTA: "Онлайн-консультация",
+    telegramLink: "https://t.me/yourusername"
+  });
+
+  const [aboutData, setAboutData] = useState<AboutData>({
+    title: "Кто я?",
+    subtitle: "Системный операционный партнер, который превращает хаос в вашем бизнесе/инфобизнесе в работающую машину - быстро, с заботой и без драмы",
+    highlights: [
+      "Опыт в сфере управления персонала (руководитель HR-команд) более 6 лет",
+      "Руковожу онлайн-школами, проектами и продуктами более 5 лет",
+      "Наибольшее кол-во подчиненных в команде - 50 человек",
+      "Обучалась у всех лидеров и топов рынка (Гребенюк, Тимочко, Дымшаков и другие)"
+    ]
+  });
+
   const [processData, setProcessData] = useState<ProcessStep[]>([]);
   const [clientData, setClientData] = useState<ClientSegment[]>([]);
   const [servicesData, setServicesData] = useState<Service[]>([]);
@@ -78,106 +100,80 @@ export const useDatabaseData = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Загружаем hero данные
-        const hero = await db.getHero();
-        if (hero) {
-          setHeroData({
-            badge: hero.badge,
-            title: hero.title,
-            subtitle: hero.subtitle,
-            description: hero.description,
-            primaryCTA: hero.primaryCTA,
-            secondaryCTA: hero.secondaryCTA,
-            telegramLink: hero.telegramLink
-          });
+        setLoading(true);
+
+        // Загружаем данные параллельно
+        const [
+          heroResponse,
+          aboutResponse,
+          processResponse,
+          clientResponse,
+          servicesResponse,
+          testimonialsResponse,
+          projectsResponse
+        ] = await Promise.allSettled([
+          fetch(`${API_BASE_URL}/api/hero`),
+          fetch(`${API_BASE_URL}/api/about`),
+          fetch(`${API_BASE_URL}/api/process-steps`),
+          fetch(`${API_BASE_URL}/api/client-segments`),
+          fetch(`${API_BASE_URL}/api/services`),
+          fetch(`${API_BASE_URL}/api/testimonials`),
+          fetch(`${API_BASE_URL}/api/projects`)
+        ]);
+
+        // Обрабатываем ответы
+        if (heroResponse.status === 'fulfilled' && heroResponse.value.ok) {
+          const hero = await heroResponse.value.json();
+          if (hero) {
+            setHeroData(hero);
+          }
         }
 
-        // Загружаем about данные
-        const about = await db.getAbout();
-        if (about) {
-          setAboutData({
-            title: about.title,
-            subtitle: about.subtitle,
-            highlights: about.highlights
-          });
+        if (aboutResponse.status === 'fulfilled' && aboutResponse.value.ok) {
+          const about = await aboutResponse.value.json();
+          if (about) {
+            setAboutData(about);
+          }
         }
 
-        // Загружаем process steps
-        const processes = await db.getProcessSteps();
-        if (processes.length > 0) {
-          setProcessData(processes.map(p => ({
-            id: parseInt(p.id.split('-')[1]),
-            number: p.number,
-            title: p.title,
-            description: p.description,
-            examples: p.examples,
-            details: p.details
-          })));
-        } else {
-          setProcessData(processSteps);
+        if (processResponse.status === 'fulfilled' && processResponse.value.ok) {
+          const process = await processResponse.value.json();
+          if (Array.isArray(process)) {
+            setProcessData(process);
+          }
         }
 
-        // Загружаем client segments
-        const clients = await db.getClientSegments();
-        if (clients.length > 0) {
-          setClientData(clients.map(c => ({
-            id: parseInt(c.id.split('-')[1]),
-            title: c.title,
-            description: c.description
-          })));
-        } else {
-          setClientData(clientSegments);
+        if (clientResponse.status === 'fulfilled' && clientResponse.value.ok) {
+          const clients = await clientResponse.value.json();
+          if (Array.isArray(clients)) {
+            setClientData(clients);
+          }
         }
 
-        // Загружаем services
-        const services = await db.getServices();
-        if (services.length > 0) {
-          setServicesData(services.map(s => ({
-            id: parseInt(s.id.split('-')[1]),
-            title: s.title,
-            price: s.price,
-            duration: s.duration,
-            description: s.description,
-            examples: s.examples,
-            cta: s.cta,
-            available: s.available,
-            featured: s.featured
-          })));
-        } else {
-          setServicesData(serviceFormats);
+        if (servicesResponse.status === 'fulfilled' && servicesResponse.value.ok) {
+          const services = await servicesResponse.value.json();
+          if (Array.isArray(services)) {
+            setServicesData(services);
+          }
         }
 
-        // Загружаем testimonials
-        const testimonialsList = await db.getTestimonials();
-        if (testimonialsList.length > 0) {
-          setTestimonialsData(testimonialsList.map(t => ({
-            id: parseInt(t.id.split('-')[1]),
-            name: t.name,
-            role: t.role,
-            company: t.company,
-            quote: t.quote
-          })));
-        } else {
-          setTestimonialsData(testimonials);
+        if (testimonialsResponse.status === 'fulfilled' && testimonialsResponse.value.ok) {
+          const testimonials = await testimonialsResponse.value.json();
+          if (Array.isArray(testimonials)) {
+            setTestimonialsData(testimonials);
+          }
         }
 
-        // Загружаем projects
-        const projectsList = await db.getProjects();
-        if (projectsList.length > 0) {
-          setProjectsData(projectsList.map(p => ({
-            id: parseInt(p.id.split('-')[1]),
-            title: p.title,
-            description: p.description,
-            category: p.category,
-            imageUrl: p.imageUrl,
-            link: p.link,
-            featured: p.featured
-          })));
+        if (projectsResponse.status === 'fulfilled' && projectsResponse.value.ok) {
+          const projects = await projectsResponse.value.json();
+          if (Array.isArray(projects)) {
+            setProjectsData(projects);
+          }
         }
 
       } catch (error) {
-        console.error('Error loading data from database:', error);
-        // В случае ошибки используем данные по умолчанию
+        console.error('Error loading data from API:', error);
+        // В случае ошибки API оставляем начальные значения
       } finally {
         setLoading(false);
       }

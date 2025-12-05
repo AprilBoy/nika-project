@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Menu, X, ArrowLeft, Settings, Plus, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { clearAdminSession } from "@/lib/adminSession";
 import { useAuth } from "./admin-auth";
 import { db } from "@/lib/database";
 
@@ -94,7 +93,6 @@ export function AdminNavigation({ onAdd, addButtonText }: AdminNavigationProps =
               <Link
                 to="/"
                 className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-                onClick={clearAdminSession}
               >
                 <ArrowLeft className="h-5 w-5" />
                 <span className="hidden sm:inline">На сайт</span>

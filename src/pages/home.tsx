@@ -1,4 +1,4 @@
-import { ArrowRight, Users, Target, TrendingUp, CheckCircle2, MessageCircle, ChevronDown, FolderOpen, Eye } from "lucide-react";
+import { ArrowRight, Users, Target, TrendingUp, CheckCircle2, MessageCircle, ChevronDown, FolderOpen, Eye, Building, Factory, ShoppingCart, Globe, Heart, GraduationCap, Stethoscope, Truck, Coffee, Wrench } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +30,26 @@ export default function Home() {
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const getIconComponent = (iconName?: string) => {
+    const iconMap: { [key: string]: any } = {
+      Users,
+      Target,
+      TrendingUp,
+      Building,
+      Factory,
+      ShoppingCart,
+      Globe,
+      Heart,
+      GraduationCap,
+      Stethoscope,
+      Truck,
+      Coffee,
+      Wrench
+    };
+
+    return iconMap[iconName || 'Users'] || Users;
   };
 
   return (
@@ -197,10 +217,9 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {clientData.map((segment, index) => {
-              const icons = [Users, TrendingUp, Target];
-              const Icon = icons[index];
+              const Icon = getIconComponent(segment.icon);
               return (
-                <Card key={index} className="p-8 hover-elevate transition-all">
+                <Card key={segment.id || index} className="p-8 hover-elevate transition-all">
                   <Icon className="h-12 w-12 text-primary mb-6" />
                   <h3 className="text-xl font-semibold mb-4">{segment.title}</h3>
                   <p className="text-base text-muted-foreground leading-relaxed">
@@ -265,10 +284,10 @@ export default function Home() {
                     
                     <div className="flex flex-col items-start lg:items-end gap-4 lg:min-w-[200px]">
                       <div className="text-3xl font-bold">{service.price}</div>
-                      <Button 
+                      <Button
                         variant={service.available ? "default" : "outline"}
                         disabled={!service.available}
-                        data-testid={serviceTestIds[index]}
+                        data-testid={serviceTestIds[index] || `button-service-${index}`}
                       >
                         {service.cta}
                       </Button>
@@ -371,15 +390,15 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {testimonialsData.map((testimonial, index) => (
-              <Card 
-                key={index} 
+              <Card
+                key={testimonial.id || index}
                 className={`p-8 hover-elevate transition-all ${
                   index === 1 ? 'md:col-span-2 lg:col-span-1' : ''
                 }`}
               >
                 <div className="flex items-start gap-4 mb-6">
                   <Avatar className="w-16 h-16 border-2 border-primary/20">
-                    <AvatarImage src={testimonialImages[index]} alt={testimonial.name} />
+                    <AvatarImage src={testimonialImages[index % testimonialImages.length]} alt={testimonial.name} />
                     <AvatarFallback>{testimonial.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                   </Avatar>
                   <div>

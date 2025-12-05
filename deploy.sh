@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Nika Project Deployment Script
+# Nika Project Full Stack Deployment Script
+# Deploys React frontend, Node.js API server, and SQLite database
 # Usage: ./deploy.sh [environment]
 # Default environment: production
 
@@ -74,6 +75,10 @@ build_app() {
     print_status "Installing dependencies..."
     npm ci
 
+    # Run database migrations before building
+    print_status "Running database migrations..."
+    npm run migrate
+
     # Build application
     print_status "Building application..."
     npm run build
@@ -119,16 +124,23 @@ deploy_docker() {
 
 # Health check
 health_check() {
-    print_status "Performing health check..."
+    print_status "Performing health checks..."
 
     # Wait a bit for the application to fully start
-    sleep 5
+    sleep 10
 
-    # Check if nginx is responding
-    if curl -f -s http://localhost/health > /dev/null 2>&1; then
-        print_success "Health check passed"
+    # Check if frontend (nginx) is responding
+    if curl -f -s http://localhost > /dev/null 2>&1; then
+        print_success "Frontend health check passed"
     else
-        print_warning "Health check failed - application may not be fully ready yet"
+        print_warning "Frontend health check failed - application may not be fully ready yet"
+    fi
+
+    # Check if server API is responding
+    if curl -f -s http://localhost:3001/api/hero > /dev/null 2>&1; then
+        print_success "Server API health check passed"
+    else
+        print_warning "Server API health check failed - backend may not be fully ready yet"
     fi
 }
 
@@ -139,19 +151,33 @@ show_info() {
     echo "📁 Project: $PROJECT_NAME"
     echo "🌍 Environment: $ENVIRONMENT"
     echo "⏰ Deployed at: $TIMESTAMP"
-    echo "🌐 URL: http://localhost"
-    echo "🏥 Health check: http://localhost/health"
+    echo ""
+    echo "🌐 Services:"
+    echo "  Frontend (React + Nginx): http://localhost"
+    echo "  Backend API (Node.js): http://localhost:3001"
+    echo "  Database: SQLite (persistent volume)"
+    echo ""
+    echo "🔍 API Endpoints:"
+    echo "  GET  /api/hero          - Hero section data"
+    echo "  GET  /api/about         - About section data"
+    echo "  GET  /api/process-steps - Process steps data"
+    echo "  GET  /api/services      - Services data"
+    echo "  GET  /api/testimonials  - Testimonials data"
+    echo "  GET  /api/projects      - Projects data"
+    echo "  GET  /api/inquiries     - Contact form submissions"
     echo ""
     echo "Useful commands:"
-    echo "  docker-compose logs -f          # View logs"
-    echo "  docker-compose ps              # Check container status"
-    echo "  docker-compose restart         # Restart services"
-    echo "  docker-compose down            # Stop services"
+    echo "  docker-compose logs -f frontend    # View frontend logs"
+    echo "  docker-compose logs -f server      # View server logs"
+    echo "  docker-compose ps                  # Check container status"
+    echo "  docker-compose restart             # Restart all services"
+    echo "  docker-compose down                # Stop all services"
+    echo "  npm run migrate                    # Run database migrations manually"
 }
 
 # Main deployment flow
 main() {
-    print_status "Starting deployment process..."
+    print_status "Starting full stack deployment process..."
 
     check_docker
     create_backup
@@ -160,18 +186,24 @@ main() {
     health_check
     show_info
 
-    print_success "🎉 Deployment completed successfully!"
+    print_success "🎉 Full stack deployment completed successfully!"
 }
 
 # Handle command line arguments
 case "$1" in
     --help|-h)
-        echo "Nika Project Deployment Script"
+        echo "Nika Project Full Stack Deployment Script"
+        echo "Deploys React frontend, Node.js API server, and SQLite database"
         echo ""
         echo "Usage: $0 [environment]"
         echo ""
         echo "Arguments:"
         echo "  environment    Deployment environment (default: production)"
+        echo ""
+        echo "Services deployed:"
+        echo "  - Frontend: React app served by Nginx on port 80"
+        echo "  - Backend: Node.js Express API server on port 3001"
+        echo "  - Database: SQLite with persistent volume"
         echo ""
         echo "Examples:"
         echo "  $0                    # Deploy to production"

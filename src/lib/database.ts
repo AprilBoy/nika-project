@@ -1,6 +1,7 @@
-import { heroContent, aboutContent, processSteps, clientSegments, serviceFormats, testimonials } from '@/data/content';
+// API base URL
+const API_BASE_URL = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001';
 
-// Типы данных для базы данных
+// Типы данных для API
 export interface HeroData {
   id: string;
   badge: string;
@@ -58,6 +59,7 @@ export interface ClientSegmentData {
   id: string;
   title: string;
   description: string;
+  icon?: string;
   updatedAt: string;
 }
 
@@ -69,7 +71,6 @@ export interface ProjectData {
   imageUrl?: string;
   link?: string;
   featured: boolean;
-  createdAt: string;
   updatedAt: string;
 }
 
@@ -85,451 +86,257 @@ export interface InquiryData {
   updatedAt: string;
 }
 
-// Класс для работы с базой данных (используем localStorage для простоты)
-class Database {
-  private storage: Storage | null;
+export interface AdminSessionData {
+  id: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+// Класс базы данных с API вызовами
+class DatabaseAPI {
+  private baseUrl: string;
 
   constructor() {
-    this.storage = typeof window !== 'undefined' ? window.localStorage : null;
+    this.baseUrl = API_BASE_URL;
   }
 
-  // Инициализация базы данных начальными данными
-  async initialize(): Promise<void> {
-    if (!this.storage) return;
+  private async apiCall(endpoint: string, options: RequestInit = {}): Promise<any> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    });
 
-    // Инициализация hero данных
-    if (!this.storage.getItem('hero')) {
-      const heroData: HeroData = {
-        id: 'hero',
-        ...heroContent,
-        updatedAt: new Date().toISOString()
-      };
-      this.storage.setItem('hero', JSON.stringify(heroData));
+    if (!response.ok) {
+      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
     }
 
-    // Инициализация about данных
-    if (!this.storage.getItem('about')) {
-      const aboutData: AboutData = {
-        id: 'about',
-        ...aboutContent,
-        updatedAt: new Date().toISOString()
-      };
-      this.storage.setItem('about', JSON.stringify(aboutData));
-    }
-
-    // Инициализация process steps
-    if (!this.storage.getItem('processSteps')) {
-      const processData: ProcessStepData[] = processSteps.map((step, index) => ({
-        id: `process-${step.id}`,
-        number: step.number,
-        title: step.title,
-        description: step.description,
-        examples: step.examples,
-        details: step.details,
-        updatedAt: new Date().toISOString()
-      }));
-      this.storage.setItem('processSteps', JSON.stringify(processData));
-    }
-
-    // Инициализация testimonials
-    if (!this.storage.getItem('testimonials')) {
-      const testimonialsData: TestimonialData[] = testimonials.map((testimonial, index) => ({
-        id: `testimonial-${testimonial.id}`,
-        name: testimonial.name,
-        role: testimonial.role,
-        company: testimonial.company,
-        quote: testimonial.quote,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
-      this.storage.setItem('testimonials', JSON.stringify(testimonialsData));
-    }
-
-    // Инициализация services
-    if (!this.storage.getItem('services')) {
-      const servicesData: ServiceData[] = serviceFormats.map((service, index) => ({
-        id: `service-${service.id}`,
-        title: service.title,
-        price: service.price,
-        duration: service.duration,
-        description: service.description,
-        examples: service.examples,
-        cta: service.cta,
-        available: service.available,
-        featured: service.featured,
-        updatedAt: new Date().toISOString()
-      }));
-      this.storage.setItem('services', JSON.stringify(servicesData));
-    }
-
-    // Инициализация client segments
-    if (!this.storage.getItem('clientSegments')) {
-      const clientsData: ClientSegmentData[] = clientSegments.map((segment, index) => ({
-        id: `client-${segment.id}`,
-        title: segment.title,
-        description: segment.description,
-        updatedAt: new Date().toISOString()
-      }));
-      this.storage.setItem('clientSegments', JSON.stringify(clientsData));
-    }
-
-    // Инициализация projects (пустой массив по умолчанию)
-    if (!this.storage.getItem('projects')) {
-      this.storage.setItem('projects', JSON.stringify([]));
-    }
-
-    // Инициализация inquiries (пустой массив по умолчанию)
-    if (!this.storage.getItem('inquiries')) {
-      this.storage.setItem('inquiries', JSON.stringify([]));
-    }
+    return response.json();
   }
 
-  // Hero operations
+  // Hero methods
   async getHero(): Promise<HeroData | null> {
-    if (!this.storage) return null;
-    const data = this.storage.getItem('hero');
-    return data ? JSON.parse(data) : null;
+    try {
+      return await this.apiCall('/api/hero');
+    } catch (error) {
+      console.error('Error fetching hero:', error);
+      return null;
+    }
   }
 
   async updateHero(data: Omit<HeroData, 'id' | 'updatedAt'>): Promise<HeroData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const updatedData: HeroData = {
-      id: 'hero',
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-
-    this.storage.setItem('hero', JSON.stringify(updatedData));
-    return updatedData;
+    return this.apiCall('/api/hero', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
-  // About operations
+  // About methods
   async getAbout(): Promise<AboutData | null> {
-    if (!this.storage) return null;
-    const data = this.storage.getItem('about');
-    return data ? JSON.parse(data) : null;
+    try {
+      return await this.apiCall('/api/about');
+    } catch (error) {
+      console.error('Error fetching about:', error);
+      return null;
+    }
   }
 
   async updateAbout(data: Omit<AboutData, 'id' | 'updatedAt'>): Promise<AboutData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const updatedData: AboutData = {
-      id: 'about',
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-
-    this.storage.setItem('about', JSON.stringify(updatedData));
-    return updatedData;
+    return this.apiCall('/api/about', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
-  // Process steps operations
+  // Process steps methods
   async getProcessSteps(): Promise<ProcessStepData[]> {
-    if (!this.storage) return [];
-    const data = this.storage.getItem('processSteps');
-    return data ? JSON.parse(data) : [];
-  }
-
-  async updateProcessStep(id: string, data: Omit<ProcessStepData, 'id' | 'updatedAt'>): Promise<ProcessStepData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const steps = await this.getProcessSteps();
-    const index = steps.findIndex(step => step.id === id);
-
-    if (index === -1) throw new Error('Process step not found');
-
-    const updatedStep: ProcessStepData = {
-      id,
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-
-    steps[index] = updatedStep;
-    this.storage.setItem('processSteps', JSON.stringify(steps));
-    return updatedStep;
+    try {
+      return await this.apiCall('/api/process-steps');
+    } catch (error) {
+      console.error('Error fetching process steps:', error);
+      return [];
+    }
   }
 
   async createProcessStep(data: Omit<ProcessStepData, 'id' | 'updatedAt'>): Promise<ProcessStepData> {
-    if (!this.storage) throw new Error('Storage not available');
+    return this.apiCall('/api/process-steps', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 
-    const steps = await this.getProcessSteps();
-    const newId = `process-${Date.now()}`;
-    const newStep: ProcessStepData = {
-      id: newId,
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-
-    steps.push(newStep);
-    this.storage.setItem('processSteps', JSON.stringify(steps));
-    return newStep;
+  async updateProcessStep(id: string, data: Omit<ProcessStepData, 'id' | 'updatedAt'>): Promise<ProcessStepData> {
+    return this.apiCall(`/api/process-steps/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async deleteProcessStep(id: string): Promise<void> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const steps = await this.getProcessSteps();
-    const filtered = steps.filter(step => step.id !== id);
-    this.storage.setItem('processSteps', JSON.stringify(filtered));
+    await this.apiCall(`/api/process-steps/${id}`, {
+      method: 'DELETE',
+    });
   }
 
-  // Testimonials operations
-  async getTestimonials(): Promise<TestimonialData[]> {
-    if (!this.storage) return [];
-    const data = this.storage.getItem('testimonials');
-    return data ? JSON.parse(data) : [];
-  }
-
-  async createTestimonial(data: Omit<TestimonialData, 'id' | 'createdAt' | 'updatedAt'>): Promise<TestimonialData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const testimonials = await this.getTestimonials();
-    const newId = `testimonial-${Date.now()}`;
-    const newTestimonial: TestimonialData = {
-      id: newId,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    testimonials.push(newTestimonial);
-    this.storage.setItem('testimonials', JSON.stringify(testimonials));
-    return newTestimonial;
-  }
-
-  async updateTestimonial(id: string, data: Omit<TestimonialData, 'id' | 'createdAt' | 'updatedAt'>): Promise<TestimonialData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const testimonials = await this.getTestimonials();
-    const index = testimonials.findIndex(t => t.id === id);
-
-    if (index === -1) throw new Error('Testimonial not found');
-
-    const updatedTestimonial: TestimonialData = {
-      id,
-      ...data,
-      createdAt: testimonials[index].createdAt,
-      updatedAt: new Date().toISOString()
-    };
-
-    testimonials[index] = updatedTestimonial;
-    this.storage.setItem('testimonials', JSON.stringify(testimonials));
-    return updatedTestimonial;
-  }
-
-  async deleteTestimonial(id: string): Promise<void> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const testimonials = await this.getTestimonials();
-    const filtered = testimonials.filter(t => t.id !== id);
-    this.storage.setItem('testimonials', JSON.stringify(filtered));
-  }
-
-  // Services operations
-  async getServices(): Promise<ServiceData[]> {
-    if (!this.storage) return [];
-    const data = this.storage.getItem('services');
-    return data ? JSON.parse(data) : [];
-  }
-
-  async createService(data: Omit<ServiceData, 'id' | 'updatedAt'>): Promise<ServiceData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const services = await this.getServices();
-    const newId = `service-${Date.now()}`;
-    const newService: ServiceData = {
-      id: newId,
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-
-    services.push(newService);
-    this.storage.setItem('services', JSON.stringify(services));
-    return newService;
-  }
-
-  async updateService(id: string, data: Omit<ServiceData, 'id' | 'updatedAt'>): Promise<ServiceData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const services = await this.getServices();
-    const index = services.findIndex(s => s.id === id);
-
-    if (index === -1) throw new Error('Service not found');
-
-    const updatedService: ServiceData = {
-      id,
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-
-    services[index] = updatedService;
-    this.storage.setItem('services', JSON.stringify(services));
-    return updatedService;
-  }
-
-  async deleteService(id: string): Promise<void> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const services = await this.getServices();
-    const filtered = services.filter(s => s.id !== id);
-    this.storage.setItem('services', JSON.stringify(filtered));
-  }
-
-  // Client segments operations
+  // Client segments methods
   async getClientSegments(): Promise<ClientSegmentData[]> {
-    if (!this.storage) return [];
-    const data = this.storage.getItem('clientSegments');
-    return data ? JSON.parse(data) : [];
+    try {
+      return await this.apiCall('/api/client-segments');
+    } catch (error) {
+      console.error('Error fetching client segments:', error);
+      return [];
+    }
   }
 
   async createClientSegment(data: Omit<ClientSegmentData, 'id' | 'updatedAt'>): Promise<ClientSegmentData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const segments = await this.getClientSegments();
-    const newId = `client-${Date.now()}`;
-    const newSegment: ClientSegmentData = {
-      id: newId,
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-
-    segments.push(newSegment);
-    this.storage.setItem('clientSegments', JSON.stringify(segments));
-    return newSegment;
+    return this.apiCall('/api/client-segments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   async updateClientSegment(id: string, data: Omit<ClientSegmentData, 'id' | 'updatedAt'>): Promise<ClientSegmentData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const segments = await this.getClientSegments();
-    const index = segments.findIndex(s => s.id === id);
-
-    if (index === -1) throw new Error('Client segment not found');
-
-    const updatedSegment: ClientSegmentData = {
-      id,
-      ...data,
-      updatedAt: new Date().toISOString()
-    };
-
-    segments[index] = updatedSegment;
-    this.storage.setItem('clientSegments', JSON.stringify(segments));
-    return updatedSegment;
+    return this.apiCall(`/api/client-segments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async deleteClientSegment(id: string): Promise<void> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const segments = await this.getClientSegments();
-    const filtered = segments.filter(s => s.id !== id);
-    this.storage.setItem('clientSegments', JSON.stringify(filtered));
+    await this.apiCall(`/api/client-segments/${id}`, {
+      method: 'DELETE',
+    });
   }
 
-  // Projects operations
+  // Services methods
+  async getServices(): Promise<ServiceData[]> {
+    try {
+      return await this.apiCall('/api/services');
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      return [];
+    }
+  }
+
+  async createService(data: Omit<ServiceData, 'id' | 'updatedAt'>): Promise<ServiceData> {
+    return this.apiCall('/api/services', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateService(id: string, data: Omit<ServiceData, 'id' | 'updatedAt'>): Promise<ServiceData> {
+    return this.apiCall(`/api/services/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteService(id: string): Promise<void> {
+    await this.apiCall(`/api/services/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Testimonials methods
+  async getTestimonials(): Promise<TestimonialData[]> {
+    try {
+      return await this.apiCall('/api/testimonials');
+    } catch (error) {
+      console.error('Error fetching testimonials:', error);
+      return [];
+    }
+  }
+
+  async createTestimonial(data: Omit<TestimonialData, 'id' | 'createdAt' | 'updatedAt'>): Promise<TestimonialData> {
+    return this.apiCall('/api/testimonials', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateTestimonial(id: string, data: Omit<TestimonialData, 'id' | 'createdAt' | 'updatedAt'>): Promise<TestimonialData> {
+    return this.apiCall(`/api/testimonials/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteTestimonial(id: string): Promise<void> {
+    await this.apiCall(`/api/testimonials/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Projects methods
   async getProjects(): Promise<ProjectData[]> {
-    if (!this.storage) return [];
-    const data = this.storage.getItem('projects');
-    return data ? JSON.parse(data) : [];
+    try {
+      return await this.apiCall('/api/projects');
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      return [];
+    }
   }
 
-  async createProject(data: Omit<ProjectData, 'id' | 'createdAt' | 'updatedAt'>): Promise<ProjectData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const projects = await this.getProjects();
-    const newId = `project-${Date.now()}`;
-    const newProject: ProjectData = {
-      id: newId,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    projects.push(newProject);
-    this.storage.setItem('projects', JSON.stringify(projects));
-    return newProject;
+  async createProject(data: Omit<ProjectData, 'id' | 'updatedAt'>): Promise<ProjectData> {
+    return this.apiCall('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
-  async updateProject(id: string, data: Omit<ProjectData, 'id' | 'createdAt' | 'updatedAt'>): Promise<ProjectData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const projects = await this.getProjects();
-    const index = projects.findIndex(p => p.id === id);
-
-    if (index === -1) throw new Error('Project not found');
-
-    const updatedProject: ProjectData = {
-      id,
-      ...data,
-      createdAt: projects[index].createdAt,
-      updatedAt: new Date().toISOString()
-    };
-
-    projects[index] = updatedProject;
-    this.storage.setItem('projects', JSON.stringify(projects));
-    return updatedProject;
+  async updateProject(id: string, data: Omit<ProjectData, 'id' | 'updatedAt'>): Promise<ProjectData> {
+    return this.apiCall(`/api/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async deleteProject(id: string): Promise<void> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const projects = await this.getProjects();
-    const filtered = projects.filter(p => p.id !== id);
-    this.storage.setItem('projects', JSON.stringify(filtered));
+    await this.apiCall(`/api/projects/${id}`, {
+      method: 'DELETE',
+    });
   }
 
-  // Inquiries operations
+  // Inquiries methods
   async getInquiries(): Promise<InquiryData[]> {
-    if (!this.storage) return [];
-    const data = this.storage.getItem('inquiries');
-    return data ? JSON.parse(data) : [];
+    try {
+      return await this.apiCall('/api/inquiries');
+    } catch (error) {
+      console.error('Error fetching inquiries:', error);
+      return [];
+    }
   }
 
   async createInquiry(data: Omit<InquiryData, 'id' | 'createdAt' | 'updatedAt'>): Promise<InquiryData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const inquiries = await this.getInquiries();
-    const newId = `inquiry-${Date.now()}`;
-    const newInquiry: InquiryData = {
-      id: newId,
-      ...data,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    inquiries.push(newInquiry);
-    this.storage.setItem('inquiries', JSON.stringify(inquiries));
-    return newInquiry;
+    return this.apiCall('/api/inquiries', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   async updateInquiry(id: string, data: Omit<InquiryData, 'id' | 'createdAt' | 'updatedAt'>): Promise<InquiryData> {
-    if (!this.storage) throw new Error('Storage not available');
-
-    const inquiries = await this.getInquiries();
-    const index = inquiries.findIndex(i => i.id === id);
-
-    if (index === -1) throw new Error('Inquiry not found');
-
-    const updatedInquiry: InquiryData = {
-      id,
-      ...data,
-      createdAt: inquiries[index].createdAt,
-      updatedAt: new Date().toISOString()
-    };
-
-    inquiries[index] = updatedInquiry;
-    this.storage.setItem('inquiries', JSON.stringify(inquiries));
-    return updatedInquiry;
+    return this.apiCall(`/api/inquiries/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async deleteInquiry(id: string): Promise<void> {
-    if (!this.storage) throw new Error('Storage not available');
+    await this.apiCall(`/api/inquiries/${id}`, {
+      method: 'DELETE',
+    });
+  }
 
-    const inquiries = await this.getInquiries();
-    const filtered = inquiries.filter(i => i.id !== id);
-    this.storage.setItem('inquiries', JSON.stringify(filtered));
+  // Initialize method (for backward compatibility)
+  async initialize(): Promise<void> {
+    // Database is initialized on server startup
+    console.log('Database API initialized');
   }
 }
 
 // Экспортируем экземпляр базы данных
-export const db = new Database();
+export const db = new DatabaseAPI();

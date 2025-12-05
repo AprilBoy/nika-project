@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Navigation } from '@/components/navigation';
 import { AdminNavigation } from '@/components/admin-navigation';
@@ -37,7 +38,17 @@ import {
   Save,
   ArrowLeft,
   Trash2,
-  Eye
+  Eye,
+  Building,
+  Factory,
+  ShoppingCart,
+  Globe,
+  Heart,
+  GraduationCap,
+  Stethoscope,
+  Truck,
+  Coffee,
+  Wrench
 } from 'lucide-react';
 
 // Схемы валидации
@@ -78,6 +89,7 @@ const serviceFormSchema = z.object({
 const clientFormSchema = z.object({
   title: z.string().min(1, 'Название сегмента обязательно'),
   description: z.string().min(10, 'Описание должно содержать минимум 10 символов'),
+  icon: z.string().optional(),
 });
 
 const projectFormSchema = z.object({
@@ -116,6 +128,15 @@ import {
   testimonials
 } from '@/data/content';
 
+// Helper function to parse IDs safely
+const parseId = (id: string | number): number => {
+  if (typeof id === 'number') return id;
+  if (typeof id === 'string' && id.includes('-')) {
+    return parseInt(id.split('-')[1]);
+  }
+  return parseInt(id.toString());
+};
+
 // Импорт базы данных
 import { db } from '@/lib/database';
 
@@ -144,6 +165,7 @@ interface ClientSegment {
   id: number;
   title: string;
   description: string;
+  icon?: string;
 }
 
 interface ProcessStep {
@@ -598,7 +620,7 @@ const TestimonialsAdmin = () => {
       try {
         const testimonialsData = await db.getTestimonials();
         const formattedTestimonials: Testimonial[] = testimonialsData.map(t => ({
-          id: parseInt(t.id.split('-')[1]), // Convert string id back to number for compatibility
+          id: parseId(t.id), // Convert string id back to number for compatibility
           name: t.name,
           role: t.role,
           company: t.company,
@@ -649,7 +671,7 @@ const TestimonialsAdmin = () => {
         const updatedTestimonial = await db.updateTestimonial(editingId, data);
 
         const formattedTestimonial: Testimonial = {
-          id: parseInt(updatedTestimonial.id.split('-')[1]),
+          id: parseId(updatedTestimonial.id),
           name: updatedTestimonial.name,
           role: updatedTestimonial.role,
           company: updatedTestimonial.company,
@@ -663,7 +685,7 @@ const TestimonialsAdmin = () => {
         const newTestimonial = await db.createTestimonial(data);
 
         const formattedTestimonial: Testimonial = {
-          id: parseInt(newTestimonial.id.split('-')[1]),
+          id: parseId(newTestimonial.id),
           name: newTestimonial.name,
           role: newTestimonial.role,
           company: newTestimonial.company,
@@ -889,7 +911,7 @@ const ServicesAdmin = () => {
       try {
         const servicesData = await db.getServices();
         const formattedServices: Service[] = servicesData.map(s => ({
-          id: parseInt(s.id.split('-')[1]),
+          id: parseId(s.id),
           title: s.title,
           price: s.price,
           duration: s.duration,
@@ -949,7 +971,7 @@ const ServicesAdmin = () => {
         });
 
         const formattedService: Service = {
-          id: parseInt(updatedService.id.split('-')[1]),
+          id: parseId(updatedService.id),
           title: updatedService.title,
           price: updatedService.price,
           duration: updatedService.duration,
@@ -976,7 +998,7 @@ const ServicesAdmin = () => {
         });
 
         const formattedService: Service = {
-          id: parseInt(newService.id.split('-')[1]),
+          id: parseId(newService.id),
           title: newService.title,
           price: newService.price,
           duration: newService.duration,
@@ -1212,19 +1234,49 @@ const ClientsAdmin = () => {
   const [clients, setClients] = useState<ClientSegment[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentClient, setCurrentClient] = useState<Partial<ClientSegment>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<ClientSegment | null>(null);
   const { toast } = useToast();
+
+  const clientForm = useForm<z.infer<typeof clientFormSchema>>({
+    resolver: zodResolver(clientFormSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      icon: '',
+    },
+  });
+
+  // Варианты иконок для выбора
+  const iconOptions = [
+    { value: 'none', label: 'Без иконки', icon: null },
+    { value: 'Users', label: 'Пользователи', icon: Users },
+    { value: 'Building', label: 'Здания/Бизнес', icon: Building },
+    { value: 'Briefcase', label: 'Бизнес', icon: Briefcase },
+    { value: 'Factory', label: 'Производство', icon: Factory },
+    { value: 'ShoppingCart', label: 'Торговля', icon: ShoppingCart },
+    { value: 'Globe', label: 'Международный', icon: Globe },
+    { value: 'Heart', label: 'Некоммерческий', icon: Heart },
+    { value: 'GraduationCap', label: 'Образование', icon: GraduationCap },
+    { value: 'Stethoscope', label: 'Медицина', icon: Stethoscope },
+    { value: 'Truck', label: 'Транспорт', icon: Truck },
+    { value: 'Coffee', label: 'Кафе/Рестораны', icon: Coffee },
+    { value: 'Wrench', label: 'Ремонт/Обслуживание', icon: Wrench },
+    { value: 'Home', label: 'Домашний бизнес', icon: Home },
+    { value: 'User', label: 'Индивидуальный', icon: User },
+  ];
 
   useEffect(() => {
     const loadClients = async () => {
       try {
         const clientsData = await db.getClientSegments();
         const formattedClients: ClientSegment[] = clientsData.map(c => ({
-          id: parseInt(c.id.split('-')[1]),
+          id: parseId(c.id),
           title: c.title,
-          description: c.description
+          description: c.description,
+          icon: c.icon
         }));
         setClients(formattedClients);
       } catch (error) {
@@ -1243,33 +1295,40 @@ const ClientsAdmin = () => {
   }, [toast]);
 
   const handleEdit = (client: ClientSegment) => {
-    setCurrentClient(client);
+    clientForm.reset({
+      title: client.title,
+      description: client.description,
+      icon: client.icon || 'none',
+    });
     setEditingId(`client-${client.id}`);
     setIsDialogOpen(true);
   };
 
   const handleAdd = () => {
-    setCurrentClient({
+    clientForm.reset({
       title: '',
-      description: ''
+      description: '',
+      icon: 'none',
     });
     setEditingId(null);
     setIsDialogOpen(true);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (data: z.infer<typeof clientFormSchema>) => {
     setSaving(true);
     try {
       if (editingId) {
         const updatedClient = await db.updateClientSegment(editingId, {
-          title: currentClient.title || '',
-          description: currentClient.description || ''
+          title: data.title,
+          description: data.description,
+          icon: data.icon === 'none' ? undefined : data.icon
         });
 
         const formattedClient: ClientSegment = {
-          id: parseInt(updatedClient.id.split('-')[1]),
+          id: parseId(updatedClient.id),
           title: updatedClient.title,
-          description: updatedClient.description
+          description: updatedClient.description,
+          icon: updatedClient.icon
         };
 
         setClients(clients.map(c =>
@@ -1277,21 +1336,23 @@ const ClientsAdmin = () => {
         ));
       } else {
         const newClient = await db.createClientSegment({
-          title: currentClient.title || '',
-          description: currentClient.description || ''
+          title: data.title,
+          description: data.description,
+          icon: data.icon === 'none' ? undefined : data.icon
         });
 
         const formattedClient: ClientSegment = {
-          id: parseInt(newClient.id.split('-')[1]),
+          id: parseId(newClient.id),
           title: newClient.title,
-          description: newClient.description
+          description: newClient.description,
+          icon: newClient.icon
         };
 
         setClients([...clients, formattedClient]);
       }
 
       setIsDialogOpen(false);
-      setCurrentClient({});
+      clientForm.reset();
       setEditingId(null);
 
       toast({
@@ -1310,10 +1371,17 @@ const ClientsAdmin = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDeleteClick = (client: ClientSegment) => {
+    setClientToDelete(client);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!clientToDelete) return;
+
     try {
-      await db.deleteClientSegment(`client-${id}`);
-      setClients(clients.filter(c => c.id !== id));
+      await db.deleteClientSegment(`client-${clientToDelete.id}`);
+      setClients(clients.filter(c => c.id !== clientToDelete.id));
       toast({
         title: "Успешно удалено",
         description: "Сегмент удален",
@@ -1325,6 +1393,9 @@ const ClientsAdmin = () => {
         description: "Не удалось удалить сегмент клиента",
         variant: "destructive",
       });
+    } finally {
+      setDeleteDialogOpen(false);
+      setClientToDelete(null);
     }
   };
 
@@ -1355,7 +1426,7 @@ const ClientsAdmin = () => {
           <CardHeader>
             <CardTitle>Управление сегментами клиентов</CardTitle>
             <CardDescription>
-              Добавляйте, редактируйте и удаляйте сегменты целевой аудитории
+              Добавляйте, редактируйте и удаляйте сегменты целевой аудитории. Сегменты помогают определить, для каких типов клиентов предназначены ваши услуги.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -1381,13 +1452,31 @@ const ClientsAdmin = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(client.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteClick(client)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Удалить сегмент клиента</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Вы уверены, что хотите удалить сегмент "{clientToDelete?.title}"? Это действие нельзя отменить.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Отмена</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Удалить
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1408,39 +1497,97 @@ const ClientsAdmin = () => {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Название сегмента</Label>
-                <Input
-                  id="title"
-                  value={currentClient.title || ''}
-                  onChange={(e) => setCurrentClient({ ...currentClient, title: e.target.value })}
-                  placeholder="Введите название сегмента"
+            <Form {...clientForm}>
+              <form onSubmit={clientForm.handleSubmit(handleSave)} className="space-y-4">
+                <FormField
+                  control={clientForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Название сегмента *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Например: Стартапы и малый бизнес" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Описание</Label>
-                <Textarea
-                  id="description"
-                  value={currentClient.description || ''}
-                  onChange={(e) => setCurrentClient({ ...currentClient, description: e.target.value })}
-                  placeholder="Введите описание сегмента"
-                  rows={4}
+                <FormField
+                  control={clientForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Описание сегмента *</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Опишите, какие клиенты относятся к этому сегменту, их особенности и потребности..."
+                          rows={4}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Отмена
-              </Button>
-              <Button onClick={handleSave}>
-                {editingId ? 'Сохранить' : 'Добавить'}
-              </Button>
-            </DialogFooter>
+                <FormField
+                  control={clientForm.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Иконка сегмента</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите иконку для сегмента">
+                              {field.value && field.value !== 'none' && (
+                                <div className="flex items-center gap-2">
+                                  {(() => {
+                                    const selectedOption = iconOptions.find(opt => opt.value === field.value);
+                                    return selectedOption?.icon ? <selectedOption.icon className="h-4 w-4" /> : null;
+                                  })()}
+                                  <span>{iconOptions.find(opt => opt.value === field.value)?.label}</span>
+                                </div>
+                              )}
+                              {(!field.value || field.value === 'none') && "Без иконки"}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {iconOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div className="flex items-center gap-2">
+                                {option.icon && <option.icon className="h-4 w-4" />}
+                                <span>{option.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? 'Сохранение...' : (editingId ? 'Сохранить' : 'Добавить сегмент')}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
+            <div className="pt-6">
+              <Button onClick={handleAdd} disabled={saving} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+                Добавить сегмент клиентов
+              </Button>
+            </div>
       </div>
     </div>
   );
@@ -1461,7 +1608,7 @@ const ProcessAdmin = () => {
       try {
         const processesData = await db.getProcessSteps();
         const formattedProcesses: ProcessStep[] = processesData.map(p => ({
-          id: parseInt(p.id.split('-')[1]),
+          id: parseId(p.id),
           number: p.number,
           title: p.title,
           description: p.description,
@@ -1562,7 +1709,7 @@ const ProcessAdmin = () => {
         const newProcess = await db.createProcessStep(newProcessData);
 
         const formattedProcess: ProcessStep = {
-          id: parseInt(newProcess.id.split('-')[1]),
+          id: parseId(newProcess.id),
           number: newProcess.number,
           title: newProcess.title,
           description: newProcess.description,
@@ -1887,7 +2034,7 @@ const ProjectsAdmin = () => {
       try {
         const projectsData = await db.getProjects();
         const formattedProjects: Project[] = projectsData.map(p => ({
-          id: parseInt(p.id.split('-')[1]),
+          id: parseId(p.id),
           title: p.title,
           description: p.description,
           category: p.category,
@@ -1942,7 +2089,7 @@ const ProjectsAdmin = () => {
         });
 
         const formattedProject: Project = {
-          id: parseInt(updatedProject.id.split('-')[1]),
+          id: parseId(updatedProject.id),
           title: updatedProject.title,
           description: updatedProject.description,
           category: updatedProject.category,
@@ -1965,7 +2112,7 @@ const ProjectsAdmin = () => {
         });
 
         const formattedProject: Project = {
-          id: parseInt(newProject.id.split('-')[1]),
+          id: parseId(newProject.id),
           title: newProject.title,
           description: newProject.description,
           category: newProject.category,
@@ -2204,7 +2351,7 @@ const InquiriesAdmin = () => {
       try {
         const inquiriesData = await db.getInquiries();
         const formattedInquiries: Inquiry[] = inquiriesData.map(i => ({
-          id: parseInt(i.id.split('-')[1]),
+          id: parseId(i.id),
           name: i.name,
           email: i.email,
           phone: i.phone,
@@ -2259,7 +2406,7 @@ const InquiriesAdmin = () => {
         });
 
         const formattedInquiry: Inquiry = {
-          id: parseInt(updatedInquiry.id.split('-')[1]),
+          id: parseId(updatedInquiry.id),
           name: updatedInquiry.name,
           email: updatedInquiry.email,
           phone: updatedInquiry.phone,
@@ -2291,7 +2438,7 @@ const InquiriesAdmin = () => {
         });
 
         const formattedInquiry: Inquiry = {
-          id: parseInt(newInquiry.id.split('-')[1]),
+          id: parseId(newInquiry.id),
           name: newInquiry.name,
           email: newInquiry.email,
           phone: newInquiry.phone,
