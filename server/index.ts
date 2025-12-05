@@ -2,7 +2,7 @@ import express, { type Express } from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import AppDatabase from './src/database.js';
+import AppDatabase from './src/database.cjs';
 
 const db = new AppDatabase();
 import dotenv from 'dotenv';
@@ -12,13 +12,20 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Determine the correct path to dist directory
+// In Docker: /app/dist
+// Outside Docker: use current working directory (where npm run server is executed from)
+const projectRoot = process.env.NODE_ENV === 'production' && process.cwd().includes('/app')
+  ? '/app'
+  : process.cwd();
+
 const app = express() as any;
 const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../dist')));
+app.use(express.static(path.join(projectRoot, 'dist')));
 
 // Database is already initialized as db
 
@@ -303,9 +310,15 @@ app.delete('/api/inquiries/:id', async (req, res) => {
   }
 });
 
-// Serve React app for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+// Serve React app for all other routes (SPA fallback)
+app.use((req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+
+  // For all other routes, serve the React app
+  res.sendFile(path.join(projectRoot, 'dist/index.html'));
 });
 
 // Start server

@@ -923,4 +923,4 @@ class AppDatabase {
   }
 }
 
-export default AppDatabase;
+module.exports = AppDatabase;
