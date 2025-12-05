@@ -186,7 +186,7 @@ main() {
     health_check
     show_info
 
-    print_success "🎉 Full stack deployment completed successfully!"
+    print_success "🎉 Deployment completed successfully!"
 }
 
 # Handle command line arguments
