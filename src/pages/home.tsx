@@ -367,6 +367,11 @@ export default function Home() {
                     <MessageCircle className="h-4 w-4" /> Telegram
                   </a>
                 </li>
+                <li>
+                  <a href="/admin" className="text-muted-foreground hover:text-primary transition-colors text-xs opacity-50" data-testid="link-footer-admin">
+                    Админ панель
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
