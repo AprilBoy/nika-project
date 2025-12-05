@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Route, Switch } from 'wouter';
-import { Link, useLocation } from 'wouter';
+import React, { useState, useEffect } from 'react';
+import { Route, Switch, useLocation } from 'wouter';
+import { Link } from 'wouter';
+import { clearAdminSession } from '@/lib/adminSession';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Navigation } from '@/components/navigation';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { AdminProtectedRoute } from '@/components/admin-protected-route';
 import {
   Home,
   User,
@@ -195,6 +197,8 @@ const HeroAdmin = () => {
                 />
               </div>
 
+            </CardContent>
+          </Card>
               <div className="flex gap-4 pt-4">
                 <Button onClick={handleSave} className="flex items-center gap-2">
                   <Save className="h-4 w-4" />
@@ -204,8 +208,6 @@ const HeroAdmin = () => {
                   Сбросить
                 </Button>
               </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
@@ -299,6 +301,8 @@ const AboutAdmin = () => {
                 ))}
               </div>
 
+            </CardContent>
+          </Card>
               <div className="flex gap-4 pt-4">
                 <Button onClick={handleSave} className="flex items-center gap-2">
                   <Save className="h-4 w-4" />
@@ -308,8 +312,6 @@ const AboutAdmin = () => {
                   Сбросить
                 </Button>
               </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
@@ -359,10 +361,7 @@ const TestimonialsAdmin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AdminNavigation
-        onAdd={handleAdd}
-        addButtonText="Добавить отзыв"
-      />
+      <AdminNavigation />
 
       <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
         <Card>
@@ -412,8 +411,15 @@ const TestimonialsAdmin = () => {
                 ))}
               </TableBody>
             </Table>
+
           </CardContent>
         </Card>
+            <div className="pt-6">
+              <Button onClick={handleAdd} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Добавить отзыв
+              </Button>
+            </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-2xl">
@@ -528,10 +534,7 @@ const ServicesAdmin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AdminNavigation
-        onAdd={handleAdd}
-        addButtonText="Добавить услугу"
-      />
+      <AdminNavigation />
 
       <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
         <Card>
@@ -583,8 +586,15 @@ const ServicesAdmin = () => {
                 ))}
               </TableBody>
             </Table>
+
           </CardContent>
         </Card>
+            <div className="pt-6">
+              <Button onClick={handleAdd} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Добавить услугу
+              </Button>
+            </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-2xl">
@@ -724,10 +734,7 @@ const ClientsAdmin = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AdminNavigation
-        onAdd={handleAdd}
-        addButtonText="Добавить сегмент"
-      />
+      <AdminNavigation />
 
       <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
         <Card>
@@ -957,71 +964,71 @@ const Dashboard = () => {
           <p className="text-muted-foreground">Редактируйте содержимое вашего сайта</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link to="/hero">
-            <Card className="p-6 hover-elevate cursor-pointer transition-all">
-              <Home className="h-12 w-12 text-primary mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Главная страница</h3>
-              <p className="text-muted-foreground">Управление заголовками и описанием</p>
-            </Card>
-          </Link>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link to="hero">
+              <Card className="p-6 hover-elevate cursor-pointer transition-all">
+                <Home className="h-12 w-12 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Главная страница</h3>
+                <p className="text-muted-foreground">Управление заголовками и описанием</p>
+              </Card>
+            </Link>
 
-          <Link to="/about">
-            <Card className="p-6 hover-elevate cursor-pointer transition-all">
-              <User className="h-12 w-12 text-primary mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Обо мне</h3>
-              <p className="text-muted-foreground">Редактирование информации о себе</p>
-            </Card>
-          </Link>
+            <Link to="about">
+              <Card className="p-6 hover-elevate cursor-pointer transition-all">
+                <User className="h-12 w-12 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Обо мне</h3>
+                <p className="text-muted-foreground">Редактирование информации о себе</p>
+              </Card>
+            </Link>
 
-          <Link to="/process">
-            <Card className="p-6 hover-elevate cursor-pointer transition-all">
-              <Workflow className="h-12 w-12 text-primary mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Процесс работы</h3>
-              <p className="text-muted-foreground">Управление шагами процесса</p>
-            </Card>
-          </Link>
+            <Link to="process">
+              <Card className="p-6 hover-elevate cursor-pointer transition-all">
+                <Workflow className="h-12 w-12 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Процесс работы</h3>
+                <p className="text-muted-foreground">Управление шагами процесса</p>
+              </Card>
+            </Link>
 
-          <Link to="/testimonials">
-            <Card className="p-6 hover-elevate cursor-pointer transition-all">
-              <MessageSquare className="h-12 w-12 text-primary mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Отзывы</h3>
-              <p className="text-muted-foreground">Управление отзывами клиентов</p>
-            </Card>
-          </Link>
+            <Link to="testimonials">
+              <Card className="p-6 hover-elevate cursor-pointer transition-all">
+                <MessageSquare className="h-12 w-12 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Отзывы</h3>
+                <p className="text-muted-foreground">Управление отзывами клиентов</p>
+              </Card>
+            </Link>
 
-          <Link to="/services">
-            <Card className="p-6 hover-elevate cursor-pointer transition-all">
-              <Briefcase className="h-12 w-12 text-primary mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Услуги</h3>
-              <p className="text-muted-foreground">Редактирование услуг и цен</p>
-            </Card>
-          </Link>
+            <Link to="services">
+              <Card className="p-6 hover-elevate cursor-pointer transition-all">
+                <Briefcase className="h-12 w-12 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Услуги</h3>
+                <p className="text-muted-foreground">Редактирование услуг и цен</p>
+              </Card>
+            </Link>
 
-          <Link to="/clients">
-            <Card className="p-6 hover-elevate cursor-pointer transition-all">
-              <Users className="h-12 w-12 text-primary mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Клиенты</h3>
-              <p className="text-muted-foreground">Управление сегментами клиентов</p>
-            </Card>
-          </Link>
+            <Link to="clients">
+              <Card className="p-6 hover-elevate cursor-pointer transition-all">
+                <Users className="h-12 w-12 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Клиенты</h3>
+                <p className="text-muted-foreground">Управление сегментами клиентов</p>
+              </Card>
+            </Link>
 
-          <Link to="/projects">
-            <Card className="p-6 hover-elevate cursor-pointer transition-all">
-              <FolderOpen className="h-12 w-12 text-primary mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Проекты</h3>
-              <p className="text-muted-foreground">Управление кейсами и проектами</p>
-            </Card>
-          </Link>
+            <Link to="projects">
+              <Card className="p-6 hover-elevate cursor-pointer transition-all">
+                <FolderOpen className="h-12 w-12 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Проекты</h3>
+                <p className="text-muted-foreground">Управление кейсами и проектами</p>
+              </Card>
+            </Link>
 
-          <Link to="/inquiries">
-            <Card className="p-6 hover-elevate cursor-pointer transition-all">
-              <Mail className="h-12 w-12 text-primary mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Заявки</h3>
-              <p className="text-muted-foreground">Просмотр входящих заявок</p>
-            </Card>
-          </Link>
-        </div>
+            <Link to="inquiries">
+              <Card className="p-6 hover-elevate cursor-pointer transition-all">
+                <Mail className="h-12 w-12 text-primary mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Заявки</h3>
+                <p className="text-muted-foreground">Просмотр входящих заявок</p>
+              </Card>
+            </Link>
+          </div>
       </div>
     </div>
   );
@@ -1031,35 +1038,48 @@ const Dashboard = () => {
 const AdminPage = () => {
   const [location] = useLocation();
 
-  // Определяем компонент на основе текущего пути
-  const renderComponent = () => {
-    const path = location.replace('/admin', '') || '/';
+  useEffect(() => {
+    // Очищаем сессию при каждом роутинге из админ панели на сайт
+    const handleRouteChange = () => {
+      // Проверяем, уходим ли мы из админки
+      if (window.location.pathname && !window.location.pathname.startsWith('/admin')) {
+        clearAdminSession();
+      }
+    };
 
-    switch (path) {
-      case '/':
-        return <Dashboard />;
-      case '/hero':
-        return <HeroAdmin />;
-      case '/about':
-        return <AboutAdmin />;
-      case '/process':
-        return <ProcessAdmin />;
-      case '/testimonials':
-        return <TestimonialsAdmin />;
-      case '/services':
-        return <ServicesAdmin />;
-      case '/clients':
-        return <ClientsAdmin />;
-      case '/projects':
-        return <ProjectsAdmin />;
-      case '/inquiries':
-        return <InquiriesAdmin />;
-      default:
-        return <Dashboard />;
-    }
-  };
+    // Добавляем слушатель для изменения истории браузера
+    const handlePopState = () => {
+      handleRouteChange();
+    };
 
-  return renderComponent();
+    window.addEventListener('popstate', handlePopState);
+
+    // Также проверяем при каждом изменении location
+    handleRouteChange();
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [location]);
+
+  return (
+    <AdminProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <Switch>
+          <Route path="/admin" component={Dashboard} />
+          <Route path="admin/hero" component={HeroAdmin} />
+          <Route path="admin/about" component={AboutAdmin} />
+          <Route path="admin/process" component={ProcessAdmin} />
+          <Route path="admin/testimonials" component={TestimonialsAdmin} />
+          <Route path="admin/services" component={ServicesAdmin} />
+          <Route path="admin/clients" component={ClientsAdmin} />
+          <Route path="admin/projects" component={ProjectsAdmin} />
+          <Route path="admin/inquiries" component={InquiriesAdmin} />
+          <Route component={Dashboard} />
+        </Switch>
+      </div>
+    </AdminProtectedRoute>
+  );
 };
 
 export default AdminPage;

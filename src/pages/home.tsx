@@ -1,4 +1,5 @@
 import { ArrowRight, Users, Target, TrendingUp, CheckCircle2, MessageCircle, ChevronDown } from "lucide-react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -368,9 +369,9 @@ export default function Home() {
                   </a>
                 </li>
                 <li>
-                  <a href="/admin" className="text-muted-foreground hover:text-primary transition-colors text-xs opacity-50" data-testid="link-footer-admin">
+                  <Link href="/admin/" className="text-muted-foreground hover:text-primary transition-colors text-xs opacity-50" data-testid="link-footer-admin">
                     Админ панель
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
