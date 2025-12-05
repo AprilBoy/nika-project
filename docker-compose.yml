@@ -7,7 +7,7 @@ version: '3.8'
 #   docker compose logs     # View logs
 #
 # Services:
-#   - frontend: React app served by nginx on port 80
+#   - frontend: React app served by nginx on port 8080
 #   - server: Node.js Express API server on port 3001 (internal)
 #   - db-data: Persistent SQLite database volume
 
@@ -20,7 +20,7 @@ services:
     container_name: nika-project-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8080:80"
     environment:
       - NODE_ENV=production
     networks:
