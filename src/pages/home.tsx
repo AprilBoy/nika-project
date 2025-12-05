@@ -1,18 +1,12 @@
-import { ArrowRight, Users, Target, TrendingUp, CheckCircle2, MessageCircle, ChevronDown } from "lucide-react";
+import { ArrowRight, Users, Target, TrendingUp, CheckCircle2, MessageCircle, ChevronDown, FolderOpen, Eye } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Navigation } from "@/components/navigation";
-import {
-  heroContent,
-  aboutContent,
-  processSteps,
-  clientSegments,
-  serviceFormats,
-  testimonials,
-} from "@/data/content";
+import { useDatabaseData } from "@/hooks/useDatabaseData";
+import { ContactForm } from "@/components/contact-form";
 
 import heroImage from "@assets/generated_images/Nika_hero_portrait_5a7bc603.png";
 import aboutImage from "@assets/generated_images/Nika_about_photo_a0be6d9d.png";
@@ -23,6 +17,17 @@ import testimonial3 from "@assets/generated_images/Testimonial_client_3_47405afd
 const testimonialImages = [testimonial1, testimonial2, testimonial3];
 
 export default function Home() {
+  const {
+    heroData,
+    aboutData,
+    processData,
+    clientData,
+    servicesData,
+    testimonialsData,
+    projectsData,
+    loading
+  } = useDatabaseData();
+
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -41,36 +46,36 @@ export default function Home() {
             <div className="space-y-8">
               <div className="space-y-6">
                 <Badge className="text-sm px-4 py-2" variant="secondary" data-testid="badge-experience">
-                  {heroContent.badge}
+                  {heroData.badge}
                 </Badge>
                 <div className="space-y-3">
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight" data-testid="text-hero-title">
-                    {heroContent.title}
+                    {heroData.title}
                   </h1>
                   <p className="text-2xl md:text-3xl lg:text-4xl font-semibold text-primary leading-tight">
-                    {heroContent.subtitle}
+                    {heroData.subtitle}
                   </p>
                 </div>
                 <p className="text-lg md:text-xl leading-relaxed text-muted-foreground max-w-2xl">
-                  {heroContent.description}
+                  {heroData.description}
                 </p>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
+                <Button
                   size="lg"
                   data-testid="button-contact"
-                  onClick={() => window.open(heroContent.telegramLink, '_blank')}
+                  onClick={() => window.open(heroData.telegramLink, '_blank')}
                 >
-                  {heroContent.primaryCTA} <MessageCircle className="ml-2 h-5 w-5" />
+                  {heroData.primaryCTA} <MessageCircle className="ml-2 h-5 w-5" />
                 </Button>
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   variant="outline"
                   data-testid="button-consultation"
                   onClick={() => scrollToSection('services')}
                 >
-                  {heroContent.secondaryCTA} <ArrowRight className="ml-2 h-5 w-5" />
+                  {heroData.secondaryCTA} <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
             </div>
@@ -101,16 +106,16 @@ export default function Home() {
         <div className="container px-6 md:px-12 max-w-6xl mx-auto">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-about-title">
-              {aboutContent.title}
+              {aboutData.title}
             </h2>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
-              {aboutContent.subtitle}
+              {aboutData.subtitle}
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="space-y-6">
-              {aboutContent.highlights.map((highlight, index) => (
+              {aboutData.highlights.map((highlight, index) => (
                 <div key={index} className="flex items-start gap-4">
                   <CheckCircle2 className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
                   <p className="text-base md:text-lg leading-relaxed">{highlight}</p>
@@ -142,7 +147,7 @@ export default function Home() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-            {processSteps.map((step) => (
+            {processData.map((step) => (
               <Card key={step.number} className="p-6 relative hover-elevate transition-all">
                 <div className="absolute top-4 right-4 text-5xl font-bold opacity-10">{step.number}</div>
                 <div className="space-y-4">
@@ -191,7 +196,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {clientSegments.map((segment, index) => {
+            {clientData.map((segment, index) => {
               const icons = [Users, TrendingUp, Target];
               const Icon = icons[index];
               return (
@@ -218,7 +223,7 @@ export default function Home() {
           </div>
 
           <div className="space-y-6">
-            {serviceFormats.map((service, index) => {
+            {servicesData.map((service, index) => {
               const serviceTestIds = ['button-service-consultation', 'button-service-audit', 'button-service-immersion', 'button-service-full-management'];
               return (
                 <Card 
@@ -278,10 +283,77 @@ export default function Home() {
             <p className="text-lg text-muted-foreground">
               Есть вопрос? Пиши - обсудим за чашкой онлайн-чая
             </p>
-            <Button size="lg" data-testid="button-discuss">
+            <Button size="lg" onClick={() => scrollToSection('contact')} data-testid="button-discuss">
               Обсудить проект <MessageCircle className="ml-2 h-5 w-5" />
             </Button>
           </div>
+        </div>
+      </section>
+
+      {/* Projects Section */}
+      <section id="projects" className="py-24 md:py-32">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-projects-title">
+              Проекты и кейсы
+            </h2>
+            <p className="text-lg md:text-xl text-muted-foreground">
+              Примеры моей работы с клиентами
+            </p>
+          </div>
+
+          {projectsData.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {projectsData.filter(project => project.featured).map((project) => (
+                <Card key={project.id} className="hover-elevate transition-all overflow-hidden">
+                  {project.imageUrl && (
+                    <div className="aspect-video bg-muted overflow-hidden">
+                      <img
+                        src={project.imageUrl}
+                        alt={project.title}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
+                  )}
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Badge variant="secondary" className="mb-2">{project.category}</Badge>
+                        <h3 className="text-xl font-semibold">{project.title}</h3>
+                      </div>
+                      <p className="text-muted-foreground line-clamp-3">
+                        {project.description}
+                      </p>
+                      {project.link && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={project.link} target="_blank" rel="noopener noreferrer">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Посмотреть
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">
+                Кейсы находятся в разработке. Скоро здесь появятся примеры моей работы.
+              </p>
+            </div>
+          )}
+
+          {projectsData.length > 0 && (
+            <div className="mt-16 text-center">
+              <Button variant="outline" size="lg">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Все проекты
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -298,7 +370,7 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
+            {testimonialsData.map((testimonial, index) => (
               <Card 
                 key={index} 
                 className={`p-8 hover-elevate transition-all ${
@@ -331,6 +403,22 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Contact Section */}
+      <section id="contact" className="py-24 md:py-32 bg-muted/30">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold">
+              Готовы начать работу?
+            </h2>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              Расскажите о вашем проекте, и мы обсудим, как я могу помочь вам достичь целей
+            </p>
+          </div>
+
+          <ContactForm />
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="py-16 bg-card border-t">
         <div className="container px-6 md:px-12 max-w-6xl mx-auto">
@@ -355,8 +443,9 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Информация</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><button onClick={() => scrollToSection('about')} className="hover:text-primary transition-colors" data-testid="link-footer-about">О методе</button></li>
-                <li><button onClick={() => scrollToSection('testimonials')} className="hover:text-primary transition-colors" data-testid="link-footer-cases">Кейсы</button></li>
+                <li><button onClick={() => scrollToSection('projects')} className="hover:text-primary transition-colors" data-testid="link-footer-projects">Проекты</button></li>
                 <li><button onClick={() => scrollToSection('process')} className="hover:text-primary transition-colors" data-testid="link-footer-process">Как я работаю</button></li>
+                <li><button onClick={() => scrollToSection('contact')} className="hover:text-primary transition-colors" data-testid="link-footer-contact">Контакты</button></li>
               </ul>
             </div>
 
@@ -364,7 +453,7 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Контакты</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href={heroContent.telegramLink} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2" data-testid="link-footer-telegram">
+                  <a href={heroData.telegramLink} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2" data-testid="link-footer-telegram">
                     <MessageCircle className="h-4 w-4" /> Telegram
                   </a>
                 </li>

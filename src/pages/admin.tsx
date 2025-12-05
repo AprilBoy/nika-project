@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useToast } from '@/hooks/use-toast';
 import { Route, Switch, useLocation } from 'wouter';
 import { Link } from 'wouter';
 import { clearAdminSession } from '@/lib/adminSession';
@@ -9,12 +13,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Navigation } from '@/components/navigation';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { AdminProtectedRoute } from '@/components/admin-protected-route';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { LoadingState, SavingState } from '@/components/loading-state';
 import {
   Home,
   User,
@@ -32,6 +40,72 @@ import {
   Eye
 } from 'lucide-react';
 
+// Схемы валидации
+const heroFormSchema = z.object({
+  badge: z.string().min(1, 'Бейдж обязателен'),
+  title: z.string().min(1, 'Заголовок обязателен'),
+  subtitle: z.string().min(1, 'Подзаголовок обязателен'),
+  description: z.string().min(10, 'Описание должно содержать минимум 10 символов'),
+  primaryCTA: z.string().min(1, 'Текст основной кнопки обязателен'),
+  secondaryCTA: z.string().min(1, 'Текст вторичной кнопки обязателен'),
+  telegramLink: z.string().url('Введите корректный URL Telegram'),
+});
+
+const aboutFormSchema = z.object({
+  title: z.string().min(1, 'Заголовок обязателен'),
+  subtitle: z.string().min(10, 'Подзаголовок должен содержать минимум 10 символов'),
+  highlights: z.array(z.string().min(1, 'Каждое достижение должно быть заполнено')).min(1, 'Должен быть хотя бы один пункт достижений'),
+});
+
+const testimonialFormSchema = z.object({
+  name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
+  role: z.string().min(1, 'Должность обязательна'),
+  company: z.string().min(1, 'Название компании обязательно'),
+  quote: z.string().min(10, 'Отзыв должен содержать минимум 10 символов'),
+});
+
+const serviceFormSchema = z.object({
+  title: z.string().min(1, 'Название услуги обязательно'),
+  price: z.string().min(1, 'Цена обязательна'),
+  duration: z.string().optional(),
+  description: z.string().optional(),
+  cta: z.string().min(1, 'Текст кнопки обязателен'),
+  available: z.boolean(),
+  featured: z.boolean().optional(),
+  examples: z.array(z.string()).optional(),
+});
+
+const clientFormSchema = z.object({
+  title: z.string().min(1, 'Название сегмента обязательно'),
+  description: z.string().min(10, 'Описание должно содержать минимум 10 символов'),
+});
+
+const projectFormSchema = z.object({
+  title: z.string().min(1, 'Название проекта обязательно'),
+  description: z.string().min(10, 'Описание должно содержать минимум 10 символов'),
+  category: z.string().min(1, 'Категория обязательна'),
+  imageUrl: z.string().url('Введите корректный URL изображения').optional().or(z.literal('')),
+  link: z.string().url('Введите корректный URL').optional().or(z.literal('')),
+  featured: z.boolean().optional(),
+});
+
+const processStepFormSchema = z.object({
+  number: z.number().min(1, 'Номер шага должен быть положительным'),
+  title: z.string().min(1, 'Название шага обязательно'),
+  description: z.string().min(10, 'Описание должно содержать минимум 10 символов'),
+  examples: z.array(z.string()).optional(),
+  details: z.array(z.string()).optional(),
+});
+
+const inquiryFormSchema = z.object({
+  name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
+  email: z.string().email('Введите корректный email'),
+  phone: z.string().optional(),
+  serviceType: z.string().optional(),
+  message: z.string().min(10, 'Сообщение должно содержать минимум 10 символов'),
+  status: z.enum(['new', 'contacted', 'in-progress', 'completed', 'cancelled']),
+});
+
 // Импорт данных из content.ts для создания моков
 import {
   heroContent,
@@ -41,6 +115,9 @@ import {
   serviceFormats,
   testimonials
 } from '@/data/content';
+
+// Импорт базы данных
+import { db } from '@/lib/database';
 
 // Типы данных
 interface Testimonial {
@@ -78,25 +155,60 @@ interface ProcessStep {
   details?: string[];
 }
 
-// Моки данных на основе content.ts
-const mockTestimonials: Testimonial[] = testimonials.map((t, index) => ({
-  id: index + 1,
-  ...t
+interface Project {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  imageUrl?: string;
+  link?: string;
+  featured: boolean;
+}
+
+interface Inquiry {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+  serviceType?: string;
+  status: 'new' | 'contacted' | 'in-progress' | 'completed' | 'cancelled';
+}
+
+// Моки данных на основе content.ts (уже не используются, оставлены для совместимости)
+const mockTestimonials: Testimonial[] = testimonials.map((t) => ({
+  id: t.id,
+  name: t.name,
+  role: t.role,
+  company: t.company,
+  quote: t.quote
 }));
 
-const mockServices: Service[] = serviceFormats.map((s, index) => ({
-  id: index + 1,
-  ...s
+const mockServices: Service[] = serviceFormats.map((s) => ({
+  id: s.id,
+  title: s.title,
+  price: s.price,
+  duration: s.duration,
+  description: s.description,
+  examples: s.examples,
+  cta: s.cta,
+  available: s.available,
+  featured: s.featured
 }));
 
-const mockClients: ClientSegment[] = clientSegments.map((c, index) => ({
-  id: index + 1,
-  ...c
+const mockClients: ClientSegment[] = clientSegments.map((c) => ({
+  id: c.id,
+  title: c.title,
+  description: c.description
 }));
 
-const mockProcess: ProcessStep[] = processSteps.map((p, index) => ({
-  id: index + 1,
-  ...p
+const mockProcess: ProcessStep[] = processSteps.map((p) => ({
+  id: p.id,
+  number: p.number,
+  title: p.title,
+  description: p.description,
+  examples: p.examples,
+  details: p.details
 }));
 
 // Компоненты админ панели
@@ -104,11 +216,87 @@ const mockProcess: ProcessStep[] = processSteps.map((p, index) => ({
 // Hero Section Management
 const HeroAdmin = () => {
   const [formData, setFormData] = useState(heroContent);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
-  const handleSave = () => {
-    console.log('Saving hero data:', formData);
-    // Здесь будет логика сохранения
+  useEffect(() => {
+    const loadHeroData = async () => {
+      try {
+        const heroData = await db.getHero();
+        if (heroData) {
+          setFormData({
+            badge: heroData.badge,
+            title: heroData.title,
+            subtitle: heroData.subtitle,
+            description: heroData.description,
+            primaryCTA: heroData.primaryCTA,
+            secondaryCTA: heroData.secondaryCTA,
+            telegramLink: heroData.telegramLink
+          });
+        }
+      } catch (error) {
+        console.error('Error loading hero data:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить данные главной страницы",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHeroData();
+  }, [toast]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await db.updateHero({
+        badge: formData.badge,
+        title: formData.title,
+        subtitle: formData.subtitle,
+        description: formData.description,
+        primaryCTA: formData.primaryCTA,
+        secondaryCTA: formData.secondaryCTA,
+        telegramLink: formData.telegramLink
+      });
+      toast({
+        title: "Успешно сохранено",
+        description: "Данные главной страницы обновлены",
+      });
+    } catch (error) {
+      console.error('Error saving hero data:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить данные главной страницы",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AdminNavigation />
+        <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+          <div className="max-w-4xl">
+            <Card>
+              <CardContent className="flex items-center justify-center py-12">
+                <div className="text-center space-y-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground">Загрузка данных...</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -200,11 +388,11 @@ const HeroAdmin = () => {
             </CardContent>
           </Card>
               <div className="flex gap-4 pt-4">
-                <Button onClick={handleSave} className="flex items-center gap-2">
+                <Button onClick={handleSave} disabled={saving || loading} className="flex items-center gap-2">
                   <Save className="h-4 w-4" />
-                  Сохранить изменения
+                  {saving ? 'Сохранение...' : 'Сохранить изменения'}
                 </Button>
-                <Button variant="outline" onClick={() => setFormData(heroContent)}>
+                <Button variant="outline" onClick={() => setFormData(heroContent)} disabled={saving}>
                   Сбросить
                 </Button>
               </div>
@@ -217,10 +405,58 @@ const HeroAdmin = () => {
 // About Section Management
 const AboutAdmin = () => {
   const [formData, setFormData] = useState(aboutContent);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
-  const handleSave = () => {
-    console.log('Saving about data:', formData);
-    // Здесь будет логика сохранения
+  useEffect(() => {
+    const loadAboutData = async () => {
+      try {
+        const aboutData = await db.getAbout();
+        if (aboutData) {
+          setFormData({
+            title: aboutData.title,
+            subtitle: aboutData.subtitle,
+            highlights: aboutData.highlights
+          });
+        }
+      } catch (error) {
+        console.error('Error loading about data:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить данные раздела 'Обо мне'",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAboutData();
+  }, [toast]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await db.updateAbout({
+        title: formData.title,
+        subtitle: formData.subtitle,
+        highlights: formData.highlights
+      });
+      toast({
+        title: "Успешно сохранено",
+        description: "Данные раздела 'Обо мне' обновлены",
+      });
+    } catch (error) {
+      console.error('Error saving about data:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить данные раздела 'Обо мне'",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateHighlight = (index: number, value: string) => {
@@ -237,6 +473,26 @@ const AboutAdmin = () => {
     const newHighlights = formData.highlights.filter((_, i) => i !== index);
     setFormData({ ...formData, highlights: newHighlights });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AdminNavigation />
+        <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+          <div className="max-w-4xl">
+            <Card>
+              <CardContent className="flex items-center justify-center py-12">
+                <div className="text-center space-y-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-muted-foreground">Загрузка данных...</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -304,11 +560,11 @@ const AboutAdmin = () => {
             </CardContent>
           </Card>
               <div className="flex gap-4 pt-4">
-                <Button onClick={handleSave} className="flex items-center gap-2">
+                <Button onClick={handleSave} disabled={saving || loading} className="flex items-center gap-2">
                   <Save className="h-4 w-4" />
-                  Сохранить изменения
+                  {saving ? 'Сохранение...' : 'Сохранить изменения'}
                 </Button>
-                <Button variant="outline" onClick={() => setFormData(aboutContent)}>
+                <Button variant="outline" onClick={() => setFormData(aboutContent)} disabled={saving}>
                   Сбросить
                 </Button>
               </div>
@@ -320,19 +576,63 @@ const AboutAdmin = () => {
 
 // Testimonials Management
 const TestimonialsAdmin = () => {
-  const [testimonials, setTestimonials] = useState(mockTestimonials);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentTestimonial, setCurrentTestimonial] = useState<Partial<Testimonial>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof testimonialFormSchema>>({
+    resolver: zodResolver(testimonialFormSchema),
+    defaultValues: {
+      name: '',
+      role: '',
+      company: '',
+      quote: '',
+    },
+  });
+
+  useEffect(() => {
+    const loadTestimonials = async () => {
+      try {
+        const testimonialsData = await db.getTestimonials();
+        const formattedTestimonials: Testimonial[] = testimonialsData.map(t => ({
+          id: parseInt(t.id.split('-')[1]), // Convert string id back to number for compatibility
+          name: t.name,
+          role: t.role,
+          company: t.company,
+          quote: t.quote
+        }));
+        setTestimonials(formattedTestimonials);
+      } catch (error) {
+        console.error('Error loading testimonials:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить отзывы",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTestimonials();
+  }, [toast]);
 
   const handleEdit = (testimonial: Testimonial) => {
-    setCurrentTestimonial(testimonial);
-    setEditingId(testimonial.id);
+    form.reset({
+      name: testimonial.name,
+      role: testimonial.role,
+      company: testimonial.company,
+      quote: testimonial.quote,
+    });
+    setEditingId(`testimonial-${testimonial.id}`);
     setIsDialogOpen(true);
   };
 
   const handleAdd = () => {
-    setCurrentTestimonial({
+    form.reset({
       name: '',
       role: '',
       company: '',
@@ -342,22 +642,85 @@ const TestimonialsAdmin = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (editingId) {
-      setTestimonials(testimonials.map(t =>
-        t.id === editingId ? { ...t, ...currentTestimonial } : t
-      ));
-    } else {
-      const newId = Math.max(...testimonials.map(t => t.id)) + 1;
-      setTestimonials([...testimonials, { ...currentTestimonial, id: newId } as Testimonial]);
+  const handleSave = async (data: z.infer<typeof testimonialFormSchema>) => {
+    setSaving(true);
+    try {
+      if (editingId) {
+        const updatedTestimonial = await db.updateTestimonial(editingId, data);
+
+        const formattedTestimonial: Testimonial = {
+          id: parseInt(updatedTestimonial.id.split('-')[1]),
+          name: updatedTestimonial.name,
+          role: updatedTestimonial.role,
+          company: updatedTestimonial.company,
+          quote: updatedTestimonial.quote
+        };
+
+        setTestimonials(testimonials.map(t =>
+          t.id === formattedTestimonial.id ? formattedTestimonial : t
+        ));
+      } else {
+        const newTestimonial = await db.createTestimonial(data);
+
+        const formattedTestimonial: Testimonial = {
+          id: parseInt(newTestimonial.id.split('-')[1]),
+          name: newTestimonial.name,
+          role: newTestimonial.role,
+          company: newTestimonial.company,
+          quote: newTestimonial.quote
+        };
+
+        setTestimonials([...testimonials, formattedTestimonial]);
+      }
+
+      setIsDialogOpen(false);
+      form.reset();
+      setEditingId(null);
+
+      toast({
+        title: "Успешно сохранено",
+        description: editingId ? "Отзыв обновлен" : "Отзыв добавлен",
+      });
+    } catch (error) {
+      console.error('Error saving testimonial:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить отзыв",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
-    setIsDialogOpen(false);
-    setCurrentTestimonial({});
   };
 
-  const handleDelete = (id: number) => {
-    setTestimonials(testimonials.filter(t => t.id !== id));
+  const handleDelete = async (id: number) => {
+    try {
+      await db.deleteTestimonial(`testimonial-${id}`);
+      setTestimonials(testimonials.filter(t => t.id !== id));
+      toast({
+        title: "Успешно удалено",
+        description: "Отзыв удален",
+      });
+    } catch (error) {
+      console.error('Error deleting testimonial:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить отзыв",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AdminNavigation />
+        <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+          <LoadingState message="Загрузка отзывов..." />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -415,7 +778,7 @@ const TestimonialsAdmin = () => {
           </CardContent>
         </Card>
             <div className="pt-6">
-              <Button onClick={handleAdd} className="flex items-center gap-2">
+              <Button onClick={handleAdd} disabled={saving} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Добавить отзыв
               </Button>
@@ -432,57 +795,78 @@ const TestimonialsAdmin = () => {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Имя</Label>
-                <Input
-                  id="name"
-                  value={currentTestimonial.name || ''}
-                  onChange={(e) => setCurrentTestimonial({ ...currentTestimonial, name: e.target.value })}
-                  placeholder="Введите имя клиента"
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSave)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Имя *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Введите имя клиента" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role">Должность</Label>
-                <Input
-                  id="role"
-                  value={currentTestimonial.role || ''}
-                  onChange={(e) => setCurrentTestimonial({ ...currentTestimonial, role: e.target.value })}
-                  placeholder="Введите должность"
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Должность *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Введите должность" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="company">Компания</Label>
-                <Input
-                  id="company"
-                  value={currentTestimonial.company || ''}
-                  onChange={(e) => setCurrentTestimonial({ ...currentTestimonial, company: e.target.value })}
-                  placeholder="Введите название компании"
+                <FormField
+                  control={form.control}
+                  name="company"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Компания *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Введите название компании" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="quote">Отзыв</Label>
-                <Textarea
-                  id="quote"
-                  value={currentTestimonial.quote || ''}
-                  onChange={(e) => setCurrentTestimonial({ ...currentTestimonial, quote: e.target.value })}
-                  placeholder="Введите текст отзыва"
-                  rows={4}
+                <FormField
+                  control={form.control}
+                  name="quote"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Отзыв *</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Введите текст отзыва"
+                          rows={4}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Отмена
-              </Button>
-              <Button onClick={handleSave}>
-                {editingId ? 'Сохранить' : 'Добавить'}
-              </Button>
-            </DialogFooter>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Отмена
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? 'Сохранение...' : (editingId ? 'Сохранить' : 'Добавить')}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
@@ -492,14 +876,48 @@ const TestimonialsAdmin = () => {
 
 // Services Management
 const ServicesAdmin = () => {
-  const [services, setServices] = useState(mockServices);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentService, setCurrentService] = useState<Partial<Service>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const loadServices = async () => {
+      try {
+        const servicesData = await db.getServices();
+        const formattedServices: Service[] = servicesData.map(s => ({
+          id: parseInt(s.id.split('-')[1]),
+          title: s.title,
+          price: s.price,
+          duration: s.duration,
+          description: s.description,
+          examples: s.examples,
+          cta: s.cta,
+          available: s.available,
+          featured: s.featured
+        }));
+        setServices(formattedServices);
+      } catch (error) {
+        console.error('Error loading services:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить услуги",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadServices();
+  }, [toast]);
 
   const handleEdit = (service: Service) => {
     setCurrentService(service);
-    setEditingId(service.id);
+    setEditingId(`service-${service.id}`);
     setIsDialogOpen(true);
   };
 
@@ -515,22 +933,118 @@ const ServicesAdmin = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (editingId) {
-      setServices(services.map(s =>
-        s.id === editingId ? { ...s, ...currentService } : s
-      ));
-    } else {
-      const newId = Math.max(...services.map(s => s.id)) + 1;
-      setServices([...services, { ...currentService, id: newId } as Service]);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (editingId) {
+        const updatedService = await db.updateService(editingId, {
+          title: currentService.title || '',
+          price: currentService.price || '',
+          duration: currentService.duration,
+          description: currentService.description,
+          examples: currentService.examples,
+          cta: currentService.cta || '',
+          available: currentService.available || false,
+          featured: currentService.featured
+        });
+
+        const formattedService: Service = {
+          id: parseInt(updatedService.id.split('-')[1]),
+          title: updatedService.title,
+          price: updatedService.price,
+          duration: updatedService.duration,
+          description: updatedService.description,
+          examples: updatedService.examples,
+          cta: updatedService.cta,
+          available: updatedService.available,
+          featured: updatedService.featured
+        };
+
+        setServices(services.map(s =>
+          s.id === formattedService.id ? formattedService : s
+        ));
+      } else {
+        const newService = await db.createService({
+          title: currentService.title || '',
+          price: currentService.price || '',
+          duration: currentService.duration,
+          description: currentService.description,
+          examples: currentService.examples,
+          cta: currentService.cta || '',
+          available: currentService.available || false,
+          featured: currentService.featured
+        });
+
+        const formattedService: Service = {
+          id: parseInt(newService.id.split('-')[1]),
+          title: newService.title,
+          price: newService.price,
+          duration: newService.duration,
+          description: newService.description,
+          examples: newService.examples,
+          cta: newService.cta,
+          available: newService.available,
+          featured: newService.featured
+        };
+
+        setServices([...services, formattedService]);
+      }
+
+      setIsDialogOpen(false);
+      setCurrentService({});
+      setEditingId(null);
+
+      toast({
+        title: "Успешно сохранено",
+        description: editingId ? "Услуга обновлена" : "Услуга добавлена",
+      });
+    } catch (error) {
+      console.error('Error saving service:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить услугу",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
-    setIsDialogOpen(false);
-    setCurrentService({});
   };
 
-  const handleDelete = (id: number) => {
-    setServices(services.filter(s => s.id !== id));
+  const handleDelete = async (id: number) => {
+    try {
+      await db.deleteService(`service-${id}`);
+      setServices(services.filter(s => s.id !== id));
+      toast({
+        title: "Успешно удалено",
+        description: "Услуга удалена",
+      });
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить услугу",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AdminNavigation />
+        <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Загрузка услуг...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -590,7 +1104,7 @@ const ServicesAdmin = () => {
           </CardContent>
         </Card>
             <div className="pt-6">
-              <Button onClick={handleAdd} className="flex items-center gap-2">
+              <Button onClick={handleAdd} disabled={saving} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Добавить услугу
               </Button>
@@ -695,14 +1209,42 @@ const ServicesAdmin = () => {
 
 // Clients Management
 const ClientsAdmin = () => {
-  const [clients, setClients] = useState(mockClients);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [clients, setClients] = useState<ClientSegment[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentClient, setCurrentClient] = useState<Partial<ClientSegment>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const loadClients = async () => {
+      try {
+        const clientsData = await db.getClientSegments();
+        const formattedClients: ClientSegment[] = clientsData.map(c => ({
+          id: parseInt(c.id.split('-')[1]),
+          title: c.title,
+          description: c.description
+        }));
+        setClients(formattedClients);
+      } catch (error) {
+        console.error('Error loading client segments:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить сегменты клиентов",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadClients();
+  }, [toast]);
 
   const handleEdit = (client: ClientSegment) => {
     setCurrentClient(client);
-    setEditingId(client.id);
+    setEditingId(`client-${client.id}`);
     setIsDialogOpen(true);
   };
 
@@ -715,22 +1257,94 @@ const ClientsAdmin = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (editingId) {
-      setClients(clients.map(c =>
-        c.id === editingId ? { ...c, ...currentClient } : c
-      ));
-    } else {
-      const newId = Math.max(...clients.map(c => c.id)) + 1;
-      setClients([...clients, { ...currentClient, id: newId } as ClientSegment]);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (editingId) {
+        const updatedClient = await db.updateClientSegment(editingId, {
+          title: currentClient.title || '',
+          description: currentClient.description || ''
+        });
+
+        const formattedClient: ClientSegment = {
+          id: parseInt(updatedClient.id.split('-')[1]),
+          title: updatedClient.title,
+          description: updatedClient.description
+        };
+
+        setClients(clients.map(c =>
+          c.id === formattedClient.id ? formattedClient : c
+        ));
+      } else {
+        const newClient = await db.createClientSegment({
+          title: currentClient.title || '',
+          description: currentClient.description || ''
+        });
+
+        const formattedClient: ClientSegment = {
+          id: parseInt(newClient.id.split('-')[1]),
+          title: newClient.title,
+          description: newClient.description
+        };
+
+        setClients([...clients, formattedClient]);
+      }
+
+      setIsDialogOpen(false);
+      setCurrentClient({});
+      setEditingId(null);
+
+      toast({
+        title: "Успешно сохранено",
+        description: editingId ? "Сегмент обновлен" : "Сегмент добавлен",
+      });
+    } catch (error) {
+      console.error('Error saving client segment:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить сегмент клиента",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
-    setIsDialogOpen(false);
-    setCurrentClient({});
   };
 
-  const handleDelete = (id: number) => {
-    setClients(clients.filter(c => c.id !== id));
+  const handleDelete = async (id: number) => {
+    try {
+      await db.deleteClientSegment(`client-${id}`);
+      setClients(clients.filter(c => c.id !== id));
+      toast({
+        title: "Успешно удалено",
+        description: "Сегмент удален",
+      });
+    } catch (error) {
+      console.error('Error deleting client segment:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить сегмент клиента",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AdminNavigation />
+        <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Загрузка сегментов клиентов...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -834,13 +1448,227 @@ const ClientsAdmin = () => {
 
 // Process Management
 const ProcessAdmin = () => {
-  const [processes, setProcesses] = useState(mockProcess);
+  const [processes, setProcesses] = useState<ProcessStep[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState<Partial<ProcessStep>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
-  const handleSave = (updatedProcess: ProcessStep) => {
-    setProcesses(processes.map(p =>
-      p.id === updatedProcess.id ? updatedProcess : p
-    ));
+  useEffect(() => {
+    const loadProcesses = async () => {
+      try {
+        const processesData = await db.getProcessSteps();
+        const formattedProcesses: ProcessStep[] = processesData.map(p => ({
+          id: parseInt(p.id.split('-')[1]),
+          number: p.number,
+          title: p.title,
+          description: p.description,
+          examples: p.examples,
+          details: p.details
+        }));
+        setProcesses(formattedProcesses);
+      } catch (error) {
+        console.error('Error loading process steps:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить шаги процесса",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProcesses();
+  }, [toast]);
+
+  const handleSave = async (updatedProcess: ProcessStep) => {
+    setSaving(true);
+    try {
+      await db.updateProcessStep(`process-${updatedProcess.id}`, {
+        number: updatedProcess.number,
+        title: updatedProcess.title,
+        description: updatedProcess.description,
+        examples: updatedProcess.examples,
+        details: updatedProcess.details
+      });
+
+      setProcesses(processes.map(p =>
+        p.id === updatedProcess.id ? updatedProcess : p
+      ));
+
+      toast({
+        title: "Успешно сохранено",
+        description: "Шаг процесса обновлен",
+      });
+    } catch (error) {
+      console.error('Error saving process step:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить шаг процесса",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const handleAddStep = () => {
+    const maxNumber = processes.length > 0 ? Math.max(...processes.map(p => p.number)) : 0;
+    setCurrentStep({
+      number: maxNumber + 1,
+      title: '',
+      description: '',
+      examples: [],
+      details: []
+    });
+    setEditingId(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditStep = (step: ProcessStep) => {
+    setCurrentStep(step);
+    setEditingId(`process-${step.id}`);
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveStep = async () => {
+    setSaving(true);
+    try {
+      if (editingId) {
+        // Update existing step
+        const updatedProcess: ProcessStep = {
+          id: currentStep.id!,
+          number: currentStep.number!,
+          title: currentStep.title!,
+          description: currentStep.description!,
+          examples: currentStep.examples,
+          details: currentStep.details
+        };
+
+        await handleSave(updatedProcess);
+      } else {
+        // Create new step
+        const newProcessData = {
+          number: currentStep.number!,
+          title: currentStep.title!,
+          description: currentStep.description!,
+          examples: currentStep.examples,
+          details: currentStep.details
+        };
+
+        const newProcess = await db.createProcessStep(newProcessData);
+
+        const formattedProcess: ProcessStep = {
+          id: parseInt(newProcess.id.split('-')[1]),
+          number: newProcess.number,
+          title: newProcess.title,
+          description: newProcess.description,
+          examples: newProcess.examples,
+          details: newProcess.details
+        };
+
+        setProcesses([...processes, formattedProcess]);
+
+        toast({
+          title: "Успешно добавлено",
+          description: "Шаг процесса добавлен",
+        });
+      }
+
+      setIsDialogOpen(false);
+      setCurrentStep({});
+      setEditingId(null);
+    } catch (error) {
+      console.error('Error saving step:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить шаг процесса",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteStep = async (id: number) => {
+    try {
+      await db.deleteProcessStep(`process-${id}`);
+
+      // Remove from local state
+      const updatedProcesses = processes.filter(p => p.id !== id);
+      // Renumber the remaining steps
+      const renumberedProcesses = updatedProcesses.map((p, index) => ({
+        ...p,
+        number: index + 1
+      }));
+
+      // Update all remaining steps in database with new numbers
+      for (const process of renumberedProcesses) {
+        await db.updateProcessStep(`process-${process.id}`, {
+          number: process.number,
+          title: process.title,
+          description: process.description,
+          examples: process.examples,
+          details: process.details
+        });
+      }
+
+      setProcesses(renumberedProcesses);
+
+      toast({
+        title: "Успешно удалено",
+        description: "Шаг процесса удален",
+      });
+    } catch (error) {
+      console.error('Error deleting step:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить шаг процесса",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleMoveStep = (id: number, direction: 'up' | 'down') => {
+    const currentIndex = processes.findIndex(p => p.id === id);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= processes.length) return;
+
+    const newProcesses = [...processes];
+    // Swap the steps
+    [newProcesses[currentIndex], newProcesses[newIndex]] = [newProcesses[newIndex], newProcesses[currentIndex]];
+
+    // Renumber all steps
+    const renumberedProcesses = newProcesses.map((p, index) => ({
+      ...p,
+      number: index + 1
+    }));
+
+    setProcesses(renumberedProcesses);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AdminNavigation />
+        <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Загрузка шагов процесса...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -848,14 +1676,60 @@ const ProcessAdmin = () => {
 
       <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
         <div className="max-w-4xl space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold">Шаги процесса работы</h2>
+              <p className="text-muted-foreground">Управляйте последовательностью шагов в вашем процессе</p>
+            </div>
+            <Button onClick={handleAddStep} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Добавить шаг
+            </Button>
+          </div>
+
           {processes.map((process) => (
             <Card key={process.id}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-4">
-                  <Badge variant="outline" className="text-lg px-3 py-1">
-                    Шаг {process.number}
-                  </Badge>
-                  <span>{process.title}</span>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Badge variant="outline" className="text-lg px-3 py-1">
+                      Шаг {process.number}
+                    </Badge>
+                    <span>{process.title}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleMoveStep(process.id, 'up')}
+                      disabled={process.number === 1}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleMoveStep(process.id, 'down')}
+                      disabled={process.number === processes.length}
+                    >
+                      ↓
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditStep(process)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteStep(process.id)}
+                      disabled={processes.length === 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -909,50 +1783,833 @@ const ProcessAdmin = () => {
             </Card>
           ))}
         </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingId ? 'Редактировать шаг' : 'Добавить шаг'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingId ? 'Измените информацию о шаге процесса' : 'Создайте новый шаг процесса'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="stepNumber">Номер шага</Label>
+                <Input
+                  id="stepNumber"
+                  type="number"
+                  value={currentStep.number || ''}
+                  onChange={(e) => setCurrentStep({ ...currentStep, number: parseInt(e.target.value) || 1 })}
+                  placeholder="1"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stepTitle">Название шага</Label>
+                <Input
+                  id="stepTitle"
+                  value={currentStep.title || ''}
+                  onChange={(e) => setCurrentStep({ ...currentStep, title: e.target.value })}
+                  placeholder="Введите название шага"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stepDescription">Описание</Label>
+                <Textarea
+                  id="stepDescription"
+                  value={currentStep.description || ''}
+                  onChange={(e) => setCurrentStep({ ...currentStep, description: e.target.value })}
+                  placeholder="Введите описание шага"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stepExamples">Примеры запросов (каждый с новой строки)</Label>
+                <Textarea
+                  id="stepExamples"
+                  value={currentStep.examples?.join('\n') || ''}
+                  onChange={(e) => setCurrentStep({
+                    ...currentStep,
+                    examples: e.target.value.split('\n').filter(ex => ex.trim())
+                  })}
+                  placeholder="Пример запроса 1&#10;Пример запроса 2"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="stepDetails">Детали (каждая с новой строки)</Label>
+                <Textarea
+                  id="stepDetails"
+                  value={currentStep.details?.join('\n') || ''}
+                  onChange={(e) => setCurrentStep({
+                    ...currentStep,
+                    details: e.target.value.split('\n').filter(d => d.trim())
+                  })}
+                  placeholder="Деталь 1&#10;Деталь 2"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Отмена
+              </Button>
+              <Button onClick={handleSaveStep}>
+                {editingId ? 'Сохранить' : 'Добавить'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
 };
 
-// Placeholder components for Projects and Inquiries
-const ProjectsAdmin = () => (
-  <div className="min-h-screen bg-background">
-    <AdminNavigation />
+// Projects Management
+const ProjectsAdmin = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentProject, setCurrentProject] = useState<Partial<Project>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
-    <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <FolderOpen className="h-16 w-16 text-muted-foreground mx-auto" />
-            <h3 className="text-lg font-semibold">Раздел проектов</h3>
-            <p className="text-muted-foreground">Управление проектами и кейсами находится в разработке</p>
-          </div>
-        </CardContent>
-      </Card>
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const projectsData = await db.getProjects();
+        const formattedProjects: Project[] = projectsData.map(p => ({
+          id: parseInt(p.id.split('-')[1]),
+          title: p.title,
+          description: p.description,
+          category: p.category,
+          imageUrl: p.imageUrl,
+          link: p.link,
+          featured: p.featured
+        }));
+        setProjects(formattedProjects);
+      } catch (error) {
+        console.error('Error loading projects:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить проекты",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProjects();
+  }, [toast]);
+
+  const handleEdit = (project: Project) => {
+    setCurrentProject(project);
+    setEditingId(`project-${project.id}`);
+    setIsDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setCurrentProject({
+      title: '',
+      description: '',
+      category: '',
+      featured: false
+    });
+    setEditingId(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (editingId) {
+        const updatedProject = await db.updateProject(editingId, {
+          title: currentProject.title || '',
+          description: currentProject.description || '',
+          category: currentProject.category || '',
+          imageUrl: currentProject.imageUrl,
+          link: currentProject.link,
+          featured: currentProject.featured || false
+        });
+
+        const formattedProject: Project = {
+          id: parseInt(updatedProject.id.split('-')[1]),
+          title: updatedProject.title,
+          description: updatedProject.description,
+          category: updatedProject.category,
+          imageUrl: updatedProject.imageUrl,
+          link: updatedProject.link,
+          featured: updatedProject.featured
+        };
+
+        setProjects(projects.map(p =>
+          p.id === formattedProject.id ? formattedProject : p
+        ));
+      } else {
+        const newProject = await db.createProject({
+          title: currentProject.title || '',
+          description: currentProject.description || '',
+          category: currentProject.category || '',
+          imageUrl: currentProject.imageUrl,
+          link: currentProject.link,
+          featured: currentProject.featured || false
+        });
+
+        const formattedProject: Project = {
+          id: parseInt(newProject.id.split('-')[1]),
+          title: newProject.title,
+          description: newProject.description,
+          category: newProject.category,
+          imageUrl: newProject.imageUrl,
+          link: newProject.link,
+          featured: newProject.featured
+        };
+
+        setProjects([...projects, formattedProject]);
+      }
+
+      setIsDialogOpen(false);
+      setCurrentProject({});
+      setEditingId(null);
+
+      toast({
+        title: "Успешно сохранено",
+        description: editingId ? "Проект обновлен" : "Проект добавлен",
+      });
+    } catch (error) {
+      console.error('Error saving project:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить проект",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await db.deleteProject(`project-${id}`);
+      setProjects(projects.filter(p => p.id !== id));
+      toast({
+        title: "Успешно удалено",
+        description: "Проект удален",
+      });
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить проект",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AdminNavigation />
+        <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Загрузка проектов...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <AdminNavigation />
+
+      <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>Управление проектами</CardTitle>
+            <CardDescription>
+              Добавляйте, редактируйте и удаляйте проекты и кейсы
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Название</TableHead>
+                  <TableHead>Категория</TableHead>
+                  <TableHead>Рекомендуемый</TableHead>
+                  <TableHead className="w-32">Действия</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {projects.map((project) => (
+                  <TableRow key={project.id}>
+                    <TableCell className="font-medium">{project.title}</TableCell>
+                    <TableCell>{project.category}</TableCell>
+                    <TableCell>
+                      <Badge variant={project.featured ? "default" : "secondary"}>
+                        {project.featured ? "Рекомендуемый" : "Обычный"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(project)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(project.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+          </CardContent>
+        </Card>
+            <div className="pt-6">
+              <Button onClick={handleAdd} disabled={saving} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Добавить проект
+              </Button>
+            </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingId ? 'Редактировать проект' : 'Добавить проект'}
+              </DialogTitle>
+              <DialogDescription>
+                Заполните информацию о проекте
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Название проекта</Label>
+                <Input
+                  id="title"
+                  value={currentProject.title || ''}
+                  onChange={(e) => setCurrentProject({ ...currentProject, title: e.target.value })}
+                  placeholder="Введите название проекта"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Категория</Label>
+                <Input
+                  id="category"
+                  value={currentProject.category || ''}
+                  onChange={(e) => setCurrentProject({ ...currentProject, category: e.target.value })}
+                  placeholder="Введите категорию проекта"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Описание</Label>
+                <Textarea
+                  id="description"
+                  value={currentProject.description || ''}
+                  onChange={(e) => setCurrentProject({ ...currentProject, description: e.target.value })}
+                  placeholder="Введите описание проекта"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="imageUrl">Ссылка на изображение</Label>
+                <Input
+                  id="imageUrl"
+                  value={currentProject.imageUrl || ''}
+                  onChange={(e) => setCurrentProject({ ...currentProject, imageUrl: e.target.value })}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="link">Ссылка на проект</Label>
+                <Input
+                  id="link"
+                  value={currentProject.link || ''}
+                  onChange={(e) => setCurrentProject({ ...currentProject, link: e.target.value })}
+                  placeholder="https://example.com/project"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Рекомендуемый проект</Label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="featured"
+                    checked={currentProject.featured || false}
+                    onChange={(e) => setCurrentProject({ ...currentProject, featured: e.target.checked })}
+                    className="rounded"
+                  />
+                  <Label htmlFor="featured">Отметить как рекомендуемый</Label>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Отмена
+              </Button>
+              <Button onClick={handleSave}>
+                {editingId ? 'Сохранить' : 'Добавить'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-const InquiriesAdmin = () => (
-  <div className="min-h-screen bg-background">
-    <AdminNavigation />
+const InquiriesAdmin = () => {
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentInquiry, setCurrentInquiry] = useState<Partial<Inquiry>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
 
-    <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center space-y-4">
-            <Mail className="h-16 w-16 text-muted-foreground mx-auto" />
-            <h3 className="text-lg font-semibold">Раздел заявок</h3>
-            <p className="text-muted-foreground">Управление входящими заявками находится в разработке</p>
-          </div>
-        </CardContent>
-      </Card>
+  useEffect(() => {
+    const loadInquiries = async () => {
+      try {
+        const inquiriesData = await db.getInquiries();
+        const formattedInquiries: Inquiry[] = inquiriesData.map(i => ({
+          id: parseInt(i.id.split('-')[1]),
+          name: i.name,
+          email: i.email,
+          phone: i.phone,
+          message: i.message,
+          serviceType: i.serviceType,
+          status: i.status
+        }));
+        setInquiries(formattedInquiries);
+      } catch (error) {
+        console.error('Error loading inquiries:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить заявки",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInquiries();
+  }, [toast]);
+
+  const handleEdit = (inquiry: Inquiry) => {
+    setCurrentInquiry(inquiry);
+    setEditingId(`inquiry-${inquiry.id}`);
+    setIsDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setCurrentInquiry({
+      name: '',
+      email: '',
+      message: '',
+      status: 'new'
+    });
+    setEditingId(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (editingId) {
+        const updatedInquiry = await db.updateInquiry(editingId, {
+          name: currentInquiry.name || '',
+          email: currentInquiry.email || '',
+          phone: currentInquiry.phone,
+          message: currentInquiry.message || '',
+          serviceType: currentInquiry.serviceType,
+          status: currentInquiry.status || 'new'
+        });
+
+        const formattedInquiry: Inquiry = {
+          id: parseInt(updatedInquiry.id.split('-')[1]),
+          name: updatedInquiry.name,
+          email: updatedInquiry.email,
+          phone: updatedInquiry.phone,
+          message: updatedInquiry.message,
+          serviceType: updatedInquiry.serviceType,
+          status: updatedInquiry.status
+        };
+
+        setInquiries(inquiries.map(i =>
+          i.id === formattedInquiry.id ? formattedInquiry : i
+        ));
+
+        // Обновляем счетчик новых заявок в localStorage для синхронизации с дашбордом
+        if (typeof window !== 'undefined') {
+          const allInquiries = await db.getInquiries();
+          const newCount = allInquiries.filter(i => i.status === 'new').length;
+          localStorage.setItem('newInquiriesCount', newCount.toString());
+          // Диспатчим событие для обновления счетчика в AdminNavigation
+          window.dispatchEvent(new CustomEvent('inquiryUpdated'));
+        }
+      } else {
+        const newInquiry = await db.createInquiry({
+          name: currentInquiry.name || '',
+          email: currentInquiry.email || '',
+          phone: currentInquiry.phone,
+          message: currentInquiry.message || '',
+          serviceType: currentInquiry.serviceType,
+          status: currentInquiry.status || 'new'
+        });
+
+        const formattedInquiry: Inquiry = {
+          id: parseInt(newInquiry.id.split('-')[1]),
+          name: newInquiry.name,
+          email: newInquiry.email,
+          phone: newInquiry.phone,
+          message: newInquiry.message,
+          serviceType: newInquiry.serviceType,
+          status: newInquiry.status
+        };
+
+        setInquiries([...inquiries, formattedInquiry]);
+
+        // Обновляем счетчик новых заявок в localStorage для синхронизации с дашбордом
+        if (typeof window !== 'undefined') {
+          const allInquiries = await db.getInquiries();
+          const newCount = allInquiries.filter(i => i.status === 'new').length;
+          localStorage.setItem('newInquiriesCount', newCount.toString());
+          // Диспатчим событие для обновления счетчика в AdminNavigation
+          window.dispatchEvent(new CustomEvent('inquiryUpdated'));
+        }
+      }
+
+      setIsDialogOpen(false);
+      setCurrentInquiry({});
+      setEditingId(null);
+
+      toast({
+        title: "Успешно сохранено",
+        description: editingId ? "Заявка обновлена" : "Заявка добавлена",
+      });
+    } catch (error) {
+      console.error('Error saving inquiry:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить заявку",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await db.deleteInquiry(`inquiry-${id}`);
+      setInquiries(inquiries.filter(i => i.id !== id));
+      toast({
+        title: "Успешно удалено",
+        description: "Заявка удалена",
+      });
+    } catch (error) {
+      console.error('Error deleting inquiry:', error);
+      toast({
+        title: "Ошибка удаления",
+        description: "Не удалось удалить заявку",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusBadge = (status: Inquiry['status']) => {
+    const statusConfig = {
+      'new': { variant: 'default' as const, label: 'Новая' },
+      'contacted': { variant: 'secondary' as const, label: 'Связались' },
+      'in-progress': { variant: 'outline' as const, label: 'В работе' },
+      'completed': { variant: 'default' as const, label: 'Завершена' },
+      'cancelled': { variant: 'destructive' as const, label: 'Отменена' }
+    };
+    const config = statusConfig[status];
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AdminNavigation />
+        <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground">Загрузка заявок...</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <AdminNavigation />
+
+      <div className="container mx-auto px-6 py-8 pt-24 md:pt-28">
+        <Card>
+          <CardHeader>
+            <CardTitle>Управление заявками</CardTitle>
+            <CardDescription>
+              Просматривайте и управляйте входящими заявками от клиентов
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Имя</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Услуга</TableHead>
+                  <TableHead>Статус</TableHead>
+                  <TableHead className="w-32">Действия</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {inquiries.map((inquiry) => (
+                  <TableRow key={inquiry.id}>
+                    <TableCell className="font-medium">{inquiry.name}</TableCell>
+                    <TableCell>{inquiry.email}</TableCell>
+                    <TableCell>{inquiry.serviceType || 'Не указана'}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(inquiry.status)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(inquiry)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDelete(inquiry.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+
+          </CardContent>
+        </Card>
+            <div className="pt-6">
+              <Button onClick={handleAdd} disabled={saving} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Добавить заявку
+              </Button>
+            </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingId ? 'Просмотр заявки' : 'Добавить заявку'}
+              </DialogTitle>
+              <DialogDescription>
+                {editingId ? 'Просмотрите и обновите информацию о заявке' : 'Создайте новую заявку'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Имя</Label>
+                  <Input
+                    id="name"
+                    value={currentInquiry.name || ''}
+                    onChange={(e) => setCurrentInquiry({ ...currentInquiry, name: e.target.value })}
+                    placeholder="Введите имя клиента"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={currentInquiry.email || ''}
+                    onChange={(e) => setCurrentInquiry({ ...currentInquiry, email: e.target.value })}
+                    placeholder="client@example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Телефон</Label>
+                  <Input
+                    id="phone"
+                    value={currentInquiry.phone || ''}
+                    onChange={(e) => setCurrentInquiry({ ...currentInquiry, phone: e.target.value })}
+                    placeholder="+7 (999) 123-45-67"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="serviceType">Тип услуги</Label>
+                  <Select
+                    value={currentInquiry.serviceType || ''}
+                    onValueChange={(value) => setCurrentInquiry({ ...currentInquiry, serviceType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите услугу" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="consultation">Консультация</SelectItem>
+                      <SelectItem value="audit">Аудит проекта</SelectItem>
+                      <SelectItem value="management">Погружение в проект</SelectItem>
+                      <SelectItem value="full-service">Ведение под ключ</SelectItem>
+                      <SelectItem value="other">Другое</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="message">Сообщение</Label>
+                <Textarea
+                  id="message"
+                  value={currentInquiry.message || ''}
+                  onChange={(e) => setCurrentInquiry({ ...currentInquiry, message: e.target.value })}
+                  placeholder="Текст заявки или сообщения"
+                  rows={4}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Статус заявки</Label>
+                <Select
+                  value={currentInquiry.status || 'new'}
+                  onValueChange={(value: Inquiry['status']) => setCurrentInquiry({ ...currentInquiry, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">Новая</SelectItem>
+                    <SelectItem value="contacted">Связались</SelectItem>
+                    <SelectItem value="in-progress">В работе</SelectItem>
+                    <SelectItem value="completed">Завершена</SelectItem>
+                    <SelectItem value="cancelled">Отменена</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Отмена
+              </Button>
+              <Button onClick={handleSave}>
+                {editingId ? 'Сохранить' : 'Добавить'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Главная админ панель с дашбордом
 const Dashboard = () => {
+  const [newInquiriesCount, setNewInquiriesCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadNewInquiriesCount = async () => {
+      try {
+        // Сначала проверяем localStorage на наличие сохраненного счетчика
+        if (typeof window !== 'undefined') {
+          const savedCount = localStorage.getItem('newInquiriesCount');
+          if (savedCount) {
+            setNewInquiriesCount(parseInt(savedCount));
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Если нет сохраненного счетчика, загружаем из базы данных
+        const inquiries = await db.getInquiries();
+        const newCount = inquiries.filter(inquiry => inquiry.status === 'new').length;
+        setNewInquiriesCount(newCount);
+
+        // Сохраняем в localStorage для быстрого доступа
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('newInquiriesCount', newCount.toString());
+        }
+      } catch (error) {
+        console.error('Error loading inquiries count:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadNewInquiriesCount();
+
+    // Слушатель для обновления счетчика при изменениях в localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'newInquiriesCount' && e.newValue) {
+        setNewInquiriesCount(parseInt(e.newValue));
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange);
+      }
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <AdminNavigation />
@@ -968,7 +2625,7 @@ const Dashboard = () => {
             <Link to="hero">
               <Card className="p-6 hover-elevate cursor-pointer transition-all">
                 <Home className="h-12 w-12 text-primary mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Главная страница</h3>
+                <h3 className="text-lg font-semibold mb-2">Hero секция</h3>
                 <p className="text-muted-foreground">Управление заголовками и описанием</p>
               </Card>
             </Link>
@@ -1022,9 +2679,16 @@ const Dashboard = () => {
             </Link>
 
             <Link to="inquiries">
-              <Card className="p-6 hover-elevate cursor-pointer transition-all">
+              <Card className="p-6 hover-elevate cursor-pointer transition-all relative">
                 <Mail className="h-12 w-12 text-primary mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Заявки</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold">Заявки</h3>
+                  {newInquiriesCount > 0 && (
+                    <Badge variant="destructive" className="animate-bounce bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg">
+                      {newInquiriesCount}
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-muted-foreground">Просмотр входящих заявок</p>
               </Card>
             </Link>
@@ -1037,8 +2701,23 @@ const Dashboard = () => {
 // Основной компонент админ панели
 const AdminPage = () => {
   const [location] = useLocation();
+  const [dbInitialized, setDbInitialized] = useState(false);
 
   useEffect(() => {
+    // Инициализируем базу данных при первом заходе в админку
+    const initializeDatabase = async () => {
+      try {
+        await db.initialize();
+        setDbInitialized(true);
+      } catch (error) {
+        console.error('Error initializing database:', error);
+      }
+    };
+
+    if (!dbInitialized) {
+      initializeDatabase();
+    }
+
     // Очищаем сессию при каждом роутинге из админ панели на сайт
     const handleRouteChange = () => {
       // Проверяем, уходим ли мы из админки
@@ -1060,24 +2739,26 @@ const AdminPage = () => {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [location]);
+  }, [location, dbInitialized]);
 
   return (
     <AdminProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Switch>
-          <Route path="/admin" component={Dashboard} />
-          <Route path="admin/hero" component={HeroAdmin} />
-          <Route path="admin/about" component={AboutAdmin} />
-          <Route path="admin/process" component={ProcessAdmin} />
-          <Route path="admin/testimonials" component={TestimonialsAdmin} />
-          <Route path="admin/services" component={ServicesAdmin} />
-          <Route path="admin/clients" component={ClientsAdmin} />
-          <Route path="admin/projects" component={ProjectsAdmin} />
-          <Route path="admin/inquiries" component={InquiriesAdmin} />
-          <Route component={Dashboard} />
-        </Switch>
-      </div>
+      <ErrorBoundary>
+        <div className="min-h-screen bg-background">
+          <Switch>
+            <Route path="/admin" component={Dashboard} />
+            <Route path="admin/hero" component={HeroAdmin} />
+            <Route path="admin/about" component={AboutAdmin} />
+            <Route path="admin/process" component={ProcessAdmin} />
+            <Route path="admin/testimonials" component={TestimonialsAdmin} />
+            <Route path="admin/services" component={ServicesAdmin} />
+            <Route path="admin/clients" component={ClientsAdmin} />
+            <Route path="admin/projects" component={ProjectsAdmin} />
+            <Route path="admin/inquiries" component={InquiriesAdmin} />
+            <Route component={Dashboard} />
+          </Switch>
+        </div>
+      </ErrorBoundary>
     </AdminProtectedRoute>
   );
 };

@@ -196,11 +196,11 @@ export function AdminLogin() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
+          {/* <div className="mt-6 text-center text-sm text-muted-foreground">
             <p>Для демонстрации:</p>
             <p><strong>admin / admin123</strong></p>
             <p><strong>nika / nika2025</strong></p>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>
