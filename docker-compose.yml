@@ -1,20 +1,10 @@
 version: '3.8'
 
-# Complete Nika Project Stack with Frontend, Backend API, and SQLite Database
-# Frontend is built locally and copied to container, Backend can access frontend files via shared volume
-# Usage:
-#   docker compose up -d    # Start all services
-#   docker compose down     # Stop all services
-#   docker compose logs     # View logs
-#
-# Services:
-#   - frontend: Pre-built React app served by nginx on port 8080
-#   - server: Node.js Express API server on port 3001 (internal) with access to frontend files
-#   - db-data: Persistent SQLite database volume
-#   - frontend-static: Shared volume for frontend static files
-
 services:
-  # Frontend service (React app served by nginx)
+  # -------------------------------------------------------
+  # FRONTEND — React приложение, собранное локально и
+  # обслуживаемое Nginx внутри контейнера
+  # -------------------------------------------------------
   frontend:
     build:
       context: .
@@ -23,14 +13,16 @@ services:
     restart: unless-stopped
     ports:
       - "8080:80"
-    environment:
-      - NODE_ENV=production
     networks:
       - app-network
+    environment:
+      - NODE_ENV=production
     depends_on:
       - server
 
-  # Backend API server
+  # -------------------------------------------------------
+  # BACKEND — Node.js API сервер
+  # -------------------------------------------------------
   server:
     build:
       context: .
@@ -47,10 +39,16 @@ services:
     networks:
       - app-network
 
+# -------------------------------------------------------
+# VOLUMES
+# -------------------------------------------------------
 volumes:
   db-data:
     driver: local
 
+# -------------------------------------------------------
+# NETWORK
+# -------------------------------------------------------
 networks:
   app-network:
     driver: bridge

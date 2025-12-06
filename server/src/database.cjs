@@ -146,7 +146,7 @@ class AppDatabase {
 
     try {
       // Load content from the JavaScript file available in production
-      defaultContent = require('../default-content.js');
+      defaultContent = require('../default-content.cjs');
     } catch (error) {
       console.error('Error reading default content:', error);
       // Fallback default content
