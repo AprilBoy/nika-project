@@ -65,12 +65,6 @@ jspm_packages/
 # Source files (not needed for server container, but needed for frontend build)
 # src/
 # public/
-vite.config.ts
-tailwind.config.ts
-postcss.config.js
-tsconfig.json
-*.config.js
-*.config.ts
 
 # Deployment files (scripts needed for migration)
 deploy.sh
