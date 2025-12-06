@@ -1,28 +1,21 @@
 version: '3.8'
 
 services:
-  # -------------------------------------------------------
-  # FRONTEND — React приложение, собранное локально и
-  # обслуживаемое Nginx внутри контейнера
-  # -------------------------------------------------------
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.frontend
     container_name: nika-project-frontend
     restart: unless-stopped
     ports:
       - "8080:80"
-    networks:
-      - app-network
     environment:
       - NODE_ENV=production
+    networks:
+      - app-network
     depends_on:
       - server
 
-  # -------------------------------------------------------
-  # BACKEND — Node.js API сервер
-  # -------------------------------------------------------
   server:
     build:
       context: .
@@ -39,16 +32,10 @@ services:
     networks:
       - app-network
 
-# -------------------------------------------------------
-# VOLUMES
-# -------------------------------------------------------
 volumes:
   db-data:
     driver: local
 
-# -------------------------------------------------------
-# NETWORK
-# -------------------------------------------------------
 networks:
   app-network:
     driver: bridge
