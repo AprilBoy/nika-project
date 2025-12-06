@@ -62,9 +62,9 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity
 
-# Source files (not needed since we copy only built files)
-src/
-public/
+# Source files (not needed for server container, but needed for frontend build)
+# src/
+# public/
 vite.config.ts
 tailwind.config.ts
 postcss.config.js
