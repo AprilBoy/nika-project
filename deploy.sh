@@ -61,34 +61,41 @@ create_backup() {
     fi
 }
 
-# Build the application
+# Build the application locally (only if needed)
 build_app() {
-    print_status "Building application for $ENVIRONMENT..."
+    print_status "Checking/building application for $ENVIRONMENT..."
 
     # Set environment variables
     export NODE_ENV=$ENVIRONMENT
 
-    # Clean previous build
-    rm -rf dist/
+    # Check if dist directory exists and is recent
+    if [ -d "dist" ] && [ -f "dist/index.html" ]; then
+        print_status "Using existing build in dist/ directory"
+    else
+        print_status "Building application locally..."
 
-    # Install dependencies
-    print_status "Installing dependencies..."
-    npm ci
+        # Clean previous build
+        rm -rf dist/
 
-    # Run database migrations before building
-    print_status "Running database migrations..."
-    npm run migrate
+        # Install dependencies
+        print_status "Installing dependencies..."
+        npm ci
 
-    # Build application
-    print_status "Building application..."
-    npm run build
+        # Build application
+        print_status "Building frontend application..."
+        npm run build
 
-    if [ ! -d "dist" ]; then
-        print_error "Build failed - dist directory not found"
-        exit 1
+        if [ ! -d "dist" ]; then
+            print_error "Build failed - dist directory not found"
+            exit 1
+        fi
+
+        print_success "Frontend application built successfully"
     fi
 
-    print_success "Application built successfully"
+    # Run database migrations (only for server)
+    print_status "Running database migrations..."
+    npm run migrate
 }
 
 # Deploy with Docker

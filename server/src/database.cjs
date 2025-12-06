@@ -141,45 +141,14 @@ class AppDatabase {
   }
 
   initData() {
-    // Import default content
-    const contentPath = path.join(__dirname, '../../src/data/content.ts');
+    // Import default content from the server directory
     let defaultContent;
 
     try {
-      // Read and parse the TypeScript file (simplified approach)
-      const content = fs.readFileSync(contentPath, 'utf8');
-
-      // Extract data using regex (basic approach)
-      const heroMatch = content.match(/export const heroContent = ({[\s\S]*?});/);
-      const aboutMatch = content.match(/export const aboutContent = ({[\s\S]*?});/);
-      const processMatch = content.match(/export const processSteps = (\[[\s\S]*?\]);/);
-      const clientsMatch = content.match(/export const clientSegments = (\[[\s\S]*?\]);/);
-      const servicesMatch = content.match(/export const serviceFormats = (\[[\s\S]*?\]);/);
-      const testimonialsMatch = content.match(/export const testimonials = (\[[\s\S]*?\]);/);
-
-      if (heroMatch && aboutMatch && processMatch && clientsMatch && servicesMatch && testimonialsMatch) {
-        // Use eval to parse the JavaScript objects (not recommended for production)
-        const heroContent = eval(`(${heroMatch[1]})`);
-        const aboutContent = eval(`(${aboutMatch[1]})`);
-        const processSteps = eval(`(${processMatch[1]})`);
-        const clientSegments = eval(`(${clientsMatch[1]})`);
-        const serviceFormats = eval(`(${servicesMatch[1]})`);
-        const testimonials = eval(`(${testimonialsMatch[1]})`);
-
-        defaultContent = {
-          heroContent,
-          aboutContent,
-          processSteps,
-          clientSegments,
-          serviceFormats,
-          testimonials
-        };
-      }
+      // Load content from the JavaScript file available in production
+      defaultContent = require('../default-content.js');
     } catch (error) {
       console.error('Error reading default content:', error);
-    }
-
-    if (!defaultContent) {
       // Fallback default content
       defaultContent = {
         heroContent: {
