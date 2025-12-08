@@ -33,6 +33,7 @@ class AppDatabase {
         primaryCTA TEXT NOT NULL,
         secondaryCTA TEXT NOT NULL,
         telegramLink TEXT NOT NULL,
+        image TEXT,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -189,7 +190,8 @@ class AppDatabase {
           description: "Превращаю хаос в работающие процессы | Запускаю проекты, строю команды, чиню что сломано | Позабочусь о ваших интересах, как о своих",
           primaryCTA: "Связаться",
           secondaryCTA: "Онлайн-консультация",
-          telegramLink: "https://t.me/nikashikh"
+          telegramLink: "https://t.me/nikashikh",
+          image: "/attached_assets/generated_images/Nika_hero_portrait_5a7bc603.png"
         },
         aboutContent: {
           title: "Кто я?",

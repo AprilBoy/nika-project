@@ -42,7 +42,9 @@ app.get('/api/hero', async (req, res) => {
 });
 app.put('/api/hero', async (req, res) => {
     try {
+        console.log('Updating hero with data:', req.body);
         const hero = await db.updateHero(req.body);
+        console.log('Hero updated successfully:', hero);
         res.json(hero);
     }
     catch (error) {

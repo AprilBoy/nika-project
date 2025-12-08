@@ -28,6 +28,23 @@ print_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 print_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # --------------------------------------------------------
+# Check if we're in the correct project directory
+# --------------------------------------------------------
+check_project_directory() {
+    if [ ! -f "package.json" ]; then
+        print_error "package.json not found. Please run this script from the project root directory."
+        exit 1
+    fi
+
+    if [ ! -f "docker-compose.yml" ]; then
+        print_error "docker-compose.yml not found. Please run this script from the project root directory."
+        exit 1
+    fi
+
+    print_success "Project directory validated"
+}
+
+# --------------------------------------------------------
 # Check if Docker is installed
 # --------------------------------------------------------
 check_docker() {
@@ -80,7 +97,36 @@ build_frontend() {
 # --------------------------------------------------------
 run_migrations() {
     print_status "Running database migrations..."
-    npm run migrate || print_warning "Migrations may have already been applied"
+    if npm run migrate; then
+        print_success "Database migrations completed successfully"
+    else
+        print_error "Database migrations failed"
+        exit 1
+    fi
+}
+
+# --------------------------------------------------------
+# Check if required ports are available
+# --------------------------------------------------------
+check_ports() {
+    print_status "Checking port availability..."
+
+    local ports=(80 3001)
+    local port_in_use=false
+
+    for port in "${ports[@]}"; do
+        if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+            print_warning "Port $port is already in use"
+            port_in_use=true
+        else
+            print_success "Port $port is available"
+        fi
+    done
+
+    if [ "$port_in_use" = true ]; then
+        print_warning "Some ports are in use. Docker containers may fail to start if ports are not available."
+        print_status "Continuing with deployment anyway..."
+    fi
 }
 
 # --------------------------------------------------------
@@ -101,29 +147,58 @@ deploy_docker() {
     print_status "Building and starting containers..."
     docker-compose up --build -d
 
-    # Wait for backend to start
-    print_status "Waiting for backend to be ready..."
-    sleep 10
+    # Services will be checked in health_check function
 }
 
 # --------------------------------------------------------
-# Health check frontend and backend
+# Health check frontend and backend with retries
 # --------------------------------------------------------
 health_check() {
     print_status "Performing health checks..."
 
+    # Function to check service with retries
+    check_service() {
+        local url=$1
+        local service_name=$2
+        local max_attempts=10
+        local attempt=1
+
+        while [ $attempt -le $max_attempts ]; do
+            print_status "Checking $service_name (attempt $attempt/$max_attempts)..."
+
+            if curl -f --max-time 10 -s "$url" > /dev/null 2>&1; then
+                print_success "$service_name health check passed ($url)"
+                return 0
+            fi
+
+            if [ $attempt -lt $max_attempts ]; then
+                print_warning "$service_name not ready, waiting 5 seconds..."
+                sleep 5
+            fi
+
+            attempt=$((attempt + 1))
+        done
+
+        print_error "$service_name health check failed after $max_attempts attempts"
+        return 1
+    }
+
+    local all_healthy=true
+
     # Frontend check (nginx)
-    if curl -f -s http://localhost:8080 > /dev/null 2>&1; then
-        print_success "Frontend health check passed (http://localhost:8080)"
-    else
-        print_warning "Frontend health check failed"
+    if ! check_service "http://localhost:80" "Frontend"; then
+        all_healthy=false
     fi
 
     # Backend API check
-    if curl -f -s http://localhost:3001/api/hero > /dev/null 2>&1; then
-        print_success "Backend API health check passed (http://localhost:3001/api/hero)"
+    if ! check_service "http://localhost:3001/api/hero" "Backend API"; then
+        all_healthy=false
+    fi
+
+    if [ "$all_healthy" = true ]; then
+        print_success "All services are healthy"
     else
-        print_warning "Backend API health check failed"
+        print_warning "Some services failed health checks but deployment continues"
     fi
 }
 
@@ -138,7 +213,7 @@ show_info() {
     echo "⏰ Deployed at: $TIMESTAMP"
     echo ""
     echo "🌐 Services URLs:"
-    echo "  Frontend (React + Nginx): http://localhost:8080"
+    echo "  Frontend (React + Nginx): http://localhost:80"
     echo "  Backend API (Node.js): http://localhost:3001"
     echo "  Database: SQLite (persistent volume)"
     echo ""
@@ -157,7 +232,9 @@ show_info() {
 main() {
     print_status "Starting full stack deployment process..."
 
+    check_project_directory
     check_docker
+    check_ports
     create_backup
     build_frontend
     run_migrations

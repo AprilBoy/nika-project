@@ -58,133 +58,13 @@ class MigrationScript {
 
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL');
-
-    // Initialize tables
-    this.initTables();
-  }
-
-  initTables() {
-    // Hero table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS hero (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        badge TEXT NOT NULL,
-        title TEXT NOT NULL,
-        subtitle TEXT NOT NULL,
-        description TEXT NOT NULL,
-        primaryCTA TEXT NOT NULL,
-        secondaryCTA TEXT NOT NULL,
-        telegramLink TEXT NOT NULL,
-        image TEXT,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // About table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS about (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        title TEXT NOT NULL,
-        subtitle TEXT NOT NULL,
-        highlights TEXT NOT NULL,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Process steps table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS process_steps (
-        id TEXT PRIMARY KEY,
-        number INTEGER NOT NULL UNIQUE,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        examples TEXT,
-        details TEXT,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Client segments table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS client_segments (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        icon TEXT,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Services table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS services (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        price TEXT NOT NULL,
-        duration TEXT,
-        description TEXT,
-        examples TEXT,
-        cta TEXT NOT NULL,
-        available BOOLEAN DEFAULT 1,
-        featured BOOLEAN DEFAULT 0,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Testimonials table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS testimonials (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        role TEXT NOT NULL,
-        company TEXT NOT NULL,
-        quote TEXT NOT NULL,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Projects table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS projects (
-        id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        category TEXT NOT NULL,
-        imageUrl TEXT,
-        link TEXT,
-        featured BOOLEAN DEFAULT 0,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Inquiries table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS inquiries (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL,
-        phone TEXT,
-        message TEXT NOT NULL,
-        serviceType TEXT,
-        status TEXT DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'in-progress', 'completed', 'cancelled')),
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Admin sessions table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS admin_sessions (
-        id TEXT PRIMARY KEY,
-        expiresAt DATETIME NOT NULL,
-        createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
   }
 
   async migrateFromLocalStorage() {
     console.log('Starting migration from localStorage...');
+
+    // First, ensure database schema is up to date
+    this.ensureSchemaUpToDate();
 
     // Check if we have localStorage data (simulate browser environment)
     const localStoragePath = path.join(__dirname, '../localStorage_backup.json');
@@ -214,6 +94,32 @@ class MigrationScript {
       console.error('Error during migration:', error);
       console.log('Falling back to default data...');
       this.initDefaultData();
+    }
+  }
+
+  ensureSchemaUpToDate() {
+    console.log('Ensuring database schema is up to date...');
+
+    try {
+      // Check if image column exists in hero table
+      const columns = this.db.prepare(`
+        PRAGMA table_info(hero)
+      `).all();
+
+      const hasImageColumn = columns.some(col => col.name === 'image');
+
+      if (!hasImageColumn) {
+        console.log('Adding image column to hero table...');
+        this.db.exec(`
+          ALTER TABLE hero ADD COLUMN image TEXT;
+        `);
+        console.log('✅ Image column added successfully');
+      } else {
+        console.log('✅ Image column already exists');
+      }
+    } catch (error) {
+      console.error('Error ensuring schema is up to date:', error);
+      throw error;
     }
   }
 
@@ -427,93 +333,53 @@ class MigrationScript {
     // Initialize with default content from content.ts
     console.log('Initializing with default data...');
 
-    // Check if data already exists
-    const heroExists = this.db.prepare('SELECT COUNT(*) as count FROM hero').get().count > 0;
-    const aboutExists = this.db.prepare('SELECT COUNT(*) as count FROM about').get().count > 0;
-    const processExists = this.db.prepare('SELECT COUNT(*) as count FROM process_steps').get().count > 0;
-    const clientExists = this.db.prepare('SELECT COUNT(*) as count FROM client_segments').get().count > 0;
-    const serviceExists = this.db.prepare('SELECT COUNT(*) as count FROM services').get().count > 0;
-    const testimonialExists = this.db.prepare('SELECT COUNT(*) as count FROM testimonials').get().count > 0;
-
     // Hero
-    if (!heroExists) {
-      const heroInsert = this.db.prepare(`
-        INSERT INTO hero (id, badge, title, subtitle, description, primaryCTA, secondaryCTA, telegramLink, image, updatedAt)
-        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
+    const heroUpdate = this.db.prepare(`
+      UPDATE hero SET
+        badge = ?,
+        title = ?,
+        subtitle = ?,
+        description = ?,
+        primaryCTA = ?,
+        secondaryCTA = ?,
+        telegramLink = ?,
+        image = ?,
+        updatedAt = ?
+      WHERE id = 1
+    `);
 
-      heroInsert.run(
-        defaultContent.heroContent.badge,
-        defaultContent.heroContent.title,
-        defaultContent.heroContent.subtitle,
-        defaultContent.heroContent.description,
-        defaultContent.heroContent.primaryCTA,
-        defaultContent.heroContent.secondaryCTA,
-        defaultContent.heroContent.telegramLink,
-        defaultContent.heroContent.image || null,
-        new Date().toISOString()
-      );
-    } else {
-      const heroUpdate = this.db.prepare(`
-        UPDATE hero SET
-          badge = ?,
-          title = ?,
-          subtitle = ?,
-          description = ?,
-          primaryCTA = ?,
-          secondaryCTA = ?,
-          telegramLink = ?,
-          image = ?,
-          updatedAt = ?
-        WHERE id = 1
-      `);
-
-      heroUpdate.run(
-        defaultContent.heroContent.badge,
-        defaultContent.heroContent.title,
-        defaultContent.heroContent.subtitle,
-        defaultContent.heroContent.description,
-        defaultContent.heroContent.primaryCTA,
-        defaultContent.heroContent.secondaryCTA,
-        defaultContent.heroContent.telegramLink,
-        defaultContent.heroContent.image || null,
-        new Date().toISOString()
-      );
-    }
+    heroUpdate.run(
+      defaultContent.heroContent.badge,
+      defaultContent.heroContent.title,
+      defaultContent.heroContent.subtitle,
+      defaultContent.heroContent.description,
+      defaultContent.heroContent.primaryCTA,
+      defaultContent.heroContent.secondaryCTA,
+      defaultContent.heroContent.telegramLink,
+      defaultContent.heroContent.image || null,
+      new Date().toISOString()
+    );
 
     // About
-    if (!aboutExists) {
-      const aboutInsert = this.db.prepare(`
-        INSERT INTO about (id, title, subtitle, highlights, updatedAt)
-        VALUES (1, ?, ?, ?, ?)
-      `);
+    const aboutUpdate = this.db.prepare(`
+      UPDATE about SET
+        title = ?,
+        subtitle = ?,
+        highlights = ?,
+        updatedAt = ?
+      WHERE id = 1
+    `);
 
-      aboutInsert.run(
-        defaultContent.aboutContent.title,
-        defaultContent.aboutContent.subtitle,
-        JSON.stringify(defaultContent.aboutContent.highlights),
-        new Date().toISOString()
-      );
-    } else {
-      const aboutUpdate = this.db.prepare(`
-        UPDATE about SET
-          title = ?,
-          subtitle = ?,
-          highlights = ?,
-          updatedAt = ?
-        WHERE id = 1
-      `);
+    aboutUpdate.run(
+      defaultContent.aboutContent.title,
+      defaultContent.aboutContent.subtitle,
+      JSON.stringify(defaultContent.aboutContent.highlights),
+      new Date().toISOString()
+    );
 
-      aboutUpdate.run(
-        defaultContent.aboutContent.title,
-        defaultContent.aboutContent.subtitle,
-        JSON.stringify(defaultContent.aboutContent.highlights),
-        new Date().toISOString()
-      );
-    }
-
-    // Process steps - only insert if table is empty
-    if (!processExists) {
+    // Process steps
+    const processCount = this.db.prepare('SELECT COUNT(*) as count FROM process_steps').get();
+    if (processCount.count === 0 && defaultContent.processSteps.length > 0) {
       const processInsert = this.db.prepare(`
         INSERT INTO process_steps (id, number, title, description, examples, details)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -531,8 +397,9 @@ class MigrationScript {
       });
     }
 
-    // Client segments - only insert if table is empty
-    if (!clientExists) {
+    // Client segments
+    const clientCount = this.db.prepare('SELECT COUNT(*) as count FROM client_segments').get();
+    if (clientCount.count === 0 && defaultContent.clientSegments.length > 0) {
       const clientInsert = this.db.prepare(`
         INSERT INTO client_segments (id, title, description, icon)
         VALUES (?, ?, ?, ?)
@@ -548,8 +415,9 @@ class MigrationScript {
       });
     }
 
-    // Services - only insert if table is empty
-    if (!serviceExists) {
+    // Services
+    const serviceCount = this.db.prepare('SELECT COUNT(*) as count FROM services').get();
+    if (serviceCount.count === 0 && defaultContent.serviceFormats.length > 0) {
       const serviceInsert = this.db.prepare(`
         INSERT INTO services (id, title, price, duration, description, examples, cta, available, featured)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -570,8 +438,9 @@ class MigrationScript {
       });
     }
 
-    // Testimonials - only insert if table is empty
-    if (!testimonialExists) {
+    // Testimonials
+    const testimonialCount = this.db.prepare('SELECT COUNT(*) as count FROM testimonials').get();
+    if (testimonialCount.count === 0 && defaultContent.testimonials.length > 0) {
       const testimonialInsert = this.db.prepare(`
         INSERT INTO testimonials (id, name, role, company, quote)
         VALUES (?, ?, ?, ?, ?)
@@ -588,7 +457,7 @@ class MigrationScript {
       });
     }
 
-    console.log('Default data initialization completed');
+    console.log('Default data initialized successfully');
   }
 
   close() {

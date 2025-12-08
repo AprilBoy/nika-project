@@ -11,7 +11,8 @@
     "check": "tsc",
     "server": "node server/index.js",
     "server:dev": "nodemon server/index.js",
-    "migrate": "node scripts/migrate.cjs"
+    "migrate": "node scripts/migrate.cjs",
+    "migrate:image": "node scripts/migrate-image-column.js"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

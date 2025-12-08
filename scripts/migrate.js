@@ -63,6 +63,9 @@ class MigrationScript {
   async migrateFromLocalStorage() {
     console.log('Starting migration from localStorage...');
 
+    // First, ensure database schema is up to date
+    this.ensureSchemaUpToDate();
+
     // Check if we have localStorage data (simulate browser environment)
     const localStoragePath = path.join(__dirname, '../localStorage_backup.json');
 
@@ -94,6 +97,32 @@ class MigrationScript {
     }
   }
 
+  ensureSchemaUpToDate() {
+    console.log('Ensuring database schema is up to date...');
+
+    try {
+      // Check if image column exists in hero table
+      const columns = this.db.prepare(`
+        PRAGMA table_info(hero)
+      `).all();
+
+      const hasImageColumn = columns.some(col => col.name === 'image');
+
+      if (!hasImageColumn) {
+        console.log('Adding image column to hero table...');
+        this.db.exec(`
+          ALTER TABLE hero ADD COLUMN image TEXT;
+        `);
+        console.log('✅ Image column added successfully');
+      } else {
+        console.log('✅ Image column already exists');
+      }
+    } catch (error) {
+      console.error('Error ensuring schema is up to date:', error);
+      throw error;
+    }
+  }
+
   migrateHero(heroData) {
     if (!heroData) return;
 
@@ -106,6 +135,7 @@ class MigrationScript {
         primaryCTA = ?,
         secondaryCTA = ?,
         telegramLink = ?,
+        image = ?,
         updatedAt = ?
       WHERE id = 1
     `);
@@ -118,6 +148,7 @@ class MigrationScript {
       heroData.primaryCTA,
       heroData.secondaryCTA,
       heroData.telegramLink,
+      heroData.image || null,
       new Date().toISOString()
     );
 
@@ -312,6 +343,7 @@ class MigrationScript {
         primaryCTA = ?,
         secondaryCTA = ?,
         telegramLink = ?,
+        image = ?,
         updatedAt = ?
       WHERE id = 1
     `);
@@ -324,6 +356,7 @@ class MigrationScript {
       defaultContent.heroContent.primaryCTA,
       defaultContent.heroContent.secondaryCTA,
       defaultContent.heroContent.telegramLink,
+      defaultContent.heroContent.image || null,
       new Date().toISOString()
     );
 
