@@ -9,6 +9,8 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+    volumes:
+      - ./attached_assets:/usr/share/nginx/html/attached_assets
     environment:
       - NODE_ENV=production
     networks:
