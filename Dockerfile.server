@@ -16,6 +16,7 @@ RUN npm ci --only=production
 COPY server/ ./server/
 COPY scripts/ ./scripts/
 COPY src/data/ ./src/data/
+COPY attached_assets/ ./attached_assets/
 
 # Создаём директорию для БД
 RUN mkdir -p /app/data
