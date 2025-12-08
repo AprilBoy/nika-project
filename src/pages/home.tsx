@@ -8,7 +8,6 @@ import { Navigation } from "@/components/navigation";
 import { useDatabaseData } from "@/hooks/useDatabaseData";
 import { ContactForm } from "@/components/contact-form";
 
-import heroImage from "@assets/generated_images/Nika_hero_portrait_5a7bc603.png";
 import aboutImage from "@assets/generated_images/Nika_about_photo_a0be6d9d.png";
 import testimonial1 from "@assets/generated_images/Testimonial_client_1_1f5ec992.png";
 import testimonial2 from "@assets/generated_images/Testimonial_client_2_53a04a52.png";
@@ -62,6 +61,15 @@ export default function Home() {
         
         <div className="container relative z-10 px-6 md:px-12 max-w-7xl mx-auto py-12">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Image for mobile (< 1024px) */}
+            <div className="relative lg:h-[500px] h-[350px] rounded-2xl overflow-hidden shadow-2xl lg:hidden mb-8">
+              <img
+                src={heroData.image}
+                alt="Ника Шихлинская - Системный операционный партнер"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
             {/* Left Content */}
             <div className="space-y-8">
               <div className="space-y-6">
@@ -100,11 +108,11 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Image */}
-            <div className="relative lg:h-[500px] h-[350px] rounded-2xl overflow-hidden shadow-2xl">
-              <img 
-                src={heroImage} 
-                alt="Ника Шихлинская - Системный операционный партнер" 
+            {/* Right Image for desktop (>= 1024px) */}
+            <div className="relative lg:h-[500px] h-[350px] rounded-2xl overflow-hidden shadow-2xl hidden lg:block">
+              <img
+                src={heroData.image}
+                alt="Ника Шихлинская - Системный операционный партнер"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -114,10 +122,10 @@ export default function Home() {
         {/* Scroll Indicator */}
         <button
           onClick={() => scrollToSection('about')}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce hidden lg:block"
           data-testid="button-scroll-down"
         >
-          <ChevronDown className="h-8 w-8 text-muted-foreground" />
+          <ChevronDown className="h-12 w-12 text-muted-foreground" />
         </button>
       </section>
 
@@ -381,7 +389,7 @@ export default function Home() {
         <div className="container px-6 md:px-12 max-w-6xl mx-auto">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-testimonials-title">
-              Отзывы и кейсы
+              Отзывы
             </h2>
             <p className="text-lg md:text-xl text-muted-foreground">
               Результаты моей работы говорят сами за себя
@@ -416,7 +424,7 @@ export default function Home() {
 
           <div className="mt-16 text-center">
             <Button variant="outline" size="lg" data-testid="button-all-cases">
-              Все кейсы <ArrowRight className="ml-2 h-5 w-5" />
+              Все отзывы <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
         </div>
@@ -472,7 +480,7 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Контакты</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a href={heroData.telegramLink} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2" data-testid="link-footer-telegram">
+                  <a  target="_blank" href={heroData.telegramLink} className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-2" data-testid="link-footer-telegram">
                     <MessageCircle className="h-4 w-4" /> Telegram
                   </a>
                 </li>

@@ -75,6 +75,7 @@ class MigrationScript {
         primaryCTA TEXT NOT NULL,
         secondaryCTA TEXT NOT NULL,
         telegramLink TEXT NOT NULL,
+        image TEXT,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -228,6 +229,7 @@ class MigrationScript {
         primaryCTA = ?,
         secondaryCTA = ?,
         telegramLink = ?,
+        image = ?,
         updatedAt = ?
       WHERE id = 1
     `);
@@ -240,6 +242,7 @@ class MigrationScript {
       heroData.primaryCTA,
       heroData.secondaryCTA,
       heroData.telegramLink,
+      heroData.image || null,
       new Date().toISOString()
     );
 
@@ -435,8 +438,8 @@ class MigrationScript {
     // Hero
     if (!heroExists) {
       const heroInsert = this.db.prepare(`
-        INSERT INTO hero (id, badge, title, subtitle, description, primaryCTA, secondaryCTA, telegramLink, updatedAt)
-        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO hero (id, badge, title, subtitle, description, primaryCTA, secondaryCTA, telegramLink, image, updatedAt)
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       heroInsert.run(
@@ -447,6 +450,7 @@ class MigrationScript {
         defaultContent.heroContent.primaryCTA,
         defaultContent.heroContent.secondaryCTA,
         defaultContent.heroContent.telegramLink,
+        defaultContent.heroContent.image || null,
         new Date().toISOString()
       );
     } else {
@@ -459,6 +463,7 @@ class MigrationScript {
           primaryCTA = ?,
           secondaryCTA = ?,
           telegramLink = ?,
+          image = ?,
           updatedAt = ?
         WHERE id = 1
       `);
@@ -471,6 +476,7 @@ class MigrationScript {
         defaultContent.heroContent.primaryCTA,
         defaultContent.heroContent.secondaryCTA,
         defaultContent.heroContent.telegramLink,
+        defaultContent.heroContent.image || null,
         new Date().toISOString()
       );
     }

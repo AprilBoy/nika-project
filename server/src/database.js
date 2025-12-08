@@ -189,7 +189,7 @@ class AppDatabase {
           description: "Превращаю хаос в работающие процессы | Запускаю проекты, строю команды, чиню что сломано | Позабочусь о ваших интересах, как о своих",
           primaryCTA: "Связаться",
           secondaryCTA: "Онлайн-консультация",
-          telegramLink: "https://t.me/yourusername"
+          telegramLink: "https://t.me/nikashikh"
         },
         aboutContent: {
           title: "Кто я?",
@@ -212,8 +212,8 @@ class AppDatabase {
     const heroExists = this.db.prepare('SELECT id FROM hero WHERE id = 1').get();
     if (!heroExists) {
       const insertHero = this.db.prepare(`
-        INSERT INTO hero (id, badge, title, subtitle, description, primaryCTA, secondaryCTA, telegramLink)
-        VALUES (1, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO hero (id, badge, title, subtitle, description, primaryCTA, secondaryCTA, telegramLink, image)
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       insertHero.run(
         defaultContent.heroContent.badge,
@@ -222,7 +222,8 @@ class AppDatabase {
         defaultContent.heroContent.description,
         defaultContent.heroContent.primaryCTA,
         defaultContent.heroContent.secondaryCTA,
-        defaultContent.heroContent.telegramLink
+        defaultContent.heroContent.telegramLink,
+        defaultContent.heroContent.image
       );
     }
 
@@ -334,6 +335,7 @@ class AppDatabase {
         primaryCTA: row.primaryCTA,
         secondaryCTA: row.secondaryCTA,
         telegramLink: row.telegramLink,
+        image: row.image,
         updatedAt: row.updatedAt
       };
     }
@@ -350,6 +352,7 @@ class AppDatabase {
         primaryCTA = ?,
         secondaryCTA = ?,
         telegramLink = ?,
+        image = ?,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = 1
     `);
@@ -361,7 +364,8 @@ class AppDatabase {
       data.description,
       data.primaryCTA,
       data.secondaryCTA,
-      data.telegramLink
+      data.telegramLink,
+      data.image
     );
 
     return this.getHero();

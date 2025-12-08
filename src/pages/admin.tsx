@@ -24,6 +24,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { AdminProtectedRoute } from '@/components/admin-protected-route';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingState, SavingState } from '@/components/loading-state';
+import { useDataUpdate } from '@/components/data-update-context';
 import {
   Home,
   User,
@@ -60,6 +61,7 @@ const heroFormSchema = z.object({
   primaryCTA: z.string().min(1, 'Текст основной кнопки обязателен'),
   secondaryCTA: z.string().min(1, 'Текст вторичной кнопки обязателен'),
   telegramLink: z.string().url('Введите корректный URL Telegram'),
+  image: z.string().optional(),
 });
 
 const aboutFormSchema = z.object({
@@ -237,10 +239,28 @@ const mockProcess: ProcessStep[] = processSteps.map((p) => ({
 
 // Hero Section Management
 const HeroAdmin = () => {
-  const [formData, setFormData] = useState(heroContent);
+  const [formData, setFormData] = useState({
+  ...heroContent,
+  image: (heroContent as any).image || ''
+});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [generatedImages, setGeneratedImages] = useState([]);
   const { toast } = useToast();
+  const { notifyDataUpdate } = useDataUpdate();
+
+  const loadGeneratedImages = async () => {
+    try {
+      const response = await fetch('/api/generated-images');
+      if (response.ok) {
+        const images = await response.json();
+        setGeneratedImages(images);
+      }
+    } catch (error) {
+      console.error('Error loading generated images:', error);
+    }
+  };
 
   useEffect(() => {
     const loadHeroData = async () => {
@@ -254,7 +274,8 @@ const HeroAdmin = () => {
             description: heroData.description,
             primaryCTA: heroData.primaryCTA,
             secondaryCTA: heroData.secondaryCTA,
-            telegramLink: heroData.telegramLink
+            telegramLink: heroData.telegramLink,
+            image: heroData.image || ''
           });
         }
       } catch (error) {
@@ -270,6 +291,7 @@ const HeroAdmin = () => {
     };
 
     loadHeroData();
+    loadGeneratedImages();
   }, [toast]);
 
   const handleSave = async () => {
@@ -282,8 +304,11 @@ const HeroAdmin = () => {
         description: formData.description,
         primaryCTA: formData.primaryCTA,
         secondaryCTA: formData.secondaryCTA,
-        telegramLink: formData.telegramLink
+        telegramLink: formData.telegramLink,
+        image: formData.image
       });
+      // Уведомляем о обновлении данных
+      notifyDataUpdate('hero');
       toast({
         title: "Успешно сохранено",
         description: "Данные главной страницы обновлены",
@@ -298,6 +323,62 @@ const HeroAdmin = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size before upload (considering base64 encoding increases size by ~33%)
+    const maxFileSize = 5 * 1024 * 1024; // 5MB original file size limit
+    if (file.size > maxFileSize) {
+      toast({
+        title: "Файл слишком большой",
+        description: "Максимальный размер файла - 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const result = await db.uploadHeroImage(file);
+      const newFormData = { ...formData, image: result.imagePath };
+      setFormData(newFormData);
+
+      // Automatically save the hero data after image upload
+      await db.updateHero({
+        badge: newFormData.badge,
+        title: newFormData.title,
+        subtitle: newFormData.subtitle,
+        description: newFormData.description,
+        primaryCTA: newFormData.primaryCTA,
+        secondaryCTA: newFormData.secondaryCTA,
+        telegramLink: newFormData.telegramLink,
+        image: newFormData.image
+      });
+
+      // Уведомляем о обновлении данных
+      notifyDataUpdate('hero');
+
+      toast({
+        title: "Изображение загружено и сохранено",
+        description: "Изображение главной страницы успешно обновлено и сохранено",
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить изображение",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleSelectGeneratedImage = (imagePath: string) => {
+    setFormData({ ...formData, image: imagePath });
   };
 
   if (loading) {
@@ -398,6 +479,71 @@ const HeroAdmin = () => {
               </div>
 
               <div className="space-y-2">
+                <Label>Изображение главной страницы</Label>
+                <div className="space-y-4">
+                  {formData.image && (
+                    <div className="relative w-48 h-32 rounded-lg overflow-hidden border">
+                      <img
+                        src={formData.image}
+                        alt="Текущее изображение главной страницы"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      className="flex-1"
+                    />
+                    {uploadingImage && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Выберите изображение для главной страницы. Рекомендуемый размер: 800x600px. Максимальный размер файла: 5MB.
+                  </p>
+                </div>
+
+                {generatedImages.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Или выберите из галереи изображений:</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/20">
+                      {generatedImages.map((image, index) => (
+                        <div
+                          key={index}
+                          className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                            formData.image === image.path ? 'border-primary ring-2 ring-primary/20' : 'border-muted'
+                          }`}
+                          onClick={() => handleSelectGeneratedImage(image.path)}
+                        >
+                          <img
+                            src={image.url}
+                            alt={image.filename}
+                            className="w-full h-24 object-cover"
+                          />
+                          {formData.image === image.path && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <div className="bg-primary text-primary-foreground rounded-full p-1">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Нажмите на изображение, чтобы выбрать его для главной страницы
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="telegramLink">Ссылка Telegram</Label>
                 <Input
                   id="telegramLink"
@@ -414,7 +560,10 @@ const HeroAdmin = () => {
                   <Save className="h-4 w-4" />
                   {saving ? 'Сохранение...' : 'Сохранить изменения'}
                 </Button>
-                <Button variant="outline" onClick={() => setFormData(heroContent)} disabled={saving}>
+                <Button variant="outline" onClick={() => setFormData({
+                  ...heroContent,
+                  image: (heroContent as any).image || ''
+                })} disabled={saving}>
                   Сбросить
                 </Button>
               </div>
@@ -430,6 +579,7 @@ const AboutAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { notifyDataUpdate } = useDataUpdate();
 
   useEffect(() => {
     const loadAboutData = async () => {
@@ -465,6 +615,8 @@ const AboutAdmin = () => {
         subtitle: formData.subtitle,
         highlights: formData.highlights
       });
+      // Уведомляем о обновлении данных
+      notifyDataUpdate('about');
       toast({
         title: "Успешно сохранено",
         description: "Данные раздела 'Обо мне' обновлены",
@@ -604,6 +756,7 @@ const TestimonialsAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { notifyDataUpdate } = useDataUpdate();
 
   const form = useForm<z.infer<typeof testimonialFormSchema>>({
     resolver: zodResolver(testimonialFormSchema),
@@ -699,6 +852,8 @@ const TestimonialsAdmin = () => {
       form.reset();
       setEditingId(null);
 
+      // Уведомляем о обновлении данных
+      notifyDataUpdate('testimonials');
       toast({
         title: "Успешно сохранено",
         description: editingId ? "Отзыв обновлен" : "Отзыв добавлен",
@@ -905,6 +1060,7 @@ const ServicesAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { notifyDataUpdate } = useDataUpdate();
 
   useEffect(() => {
     const loadServices = async () => {
@@ -1016,6 +1172,8 @@ const ServicesAdmin = () => {
       setCurrentService({});
       setEditingId(null);
 
+      // Уведомляем о обновлении данных
+      notifyDataUpdate('services');
       toast({
         title: "Успешно сохранено",
         description: editingId ? "Услуга обновлена" : "Услуга добавлена",
@@ -1239,6 +1397,7 @@ const ClientsAdmin = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<ClientSegment | null>(null);
   const { toast } = useToast();
+  const { notifyDataUpdate } = useDataUpdate();
 
   const clientForm = useForm<z.infer<typeof clientFormSchema>>({
     resolver: zodResolver(clientFormSchema),
@@ -1355,6 +1514,8 @@ const ClientsAdmin = () => {
       clientForm.reset();
       setEditingId(null);
 
+      // Уведомляем о обновлении данных
+      notifyDataUpdate('clients');
       toast({
         title: "Успешно сохранено",
         description: editingId ? "Сегмент обновлен" : "Сегмент добавлен",
@@ -1602,6 +1763,7 @@ const ProcessAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { notifyDataUpdate } = useDataUpdate();
 
   useEffect(() => {
     const loadProcesses = async () => {
@@ -1646,6 +1808,8 @@ const ProcessAdmin = () => {
         p.id === updatedProcess.id ? updatedProcess : p
       ));
 
+      // Уведомляем о обновлении данных
+      notifyDataUpdate('process');
       toast({
         title: "Успешно сохранено",
         description: "Шаг процесса обновлен",
@@ -2028,6 +2192,7 @@ const ProjectsAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { notifyDataUpdate } = useDataUpdate();
 
   useEffect(() => {
     const loadProjects = async () => {
@@ -2128,6 +2293,8 @@ const ProjectsAdmin = () => {
       setCurrentProject({});
       setEditingId(null);
 
+      // Уведомляем о обновлении данных
+      notifyDataUpdate('projects');
       toast({
         title: "Успешно сохранено",
         description: editingId ? "Проект обновлен" : "Проект добавлен",

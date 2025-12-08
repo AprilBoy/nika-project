@@ -5,7 +5,8 @@ export const heroContent = {
   description: "Превращаю хаос в работающие процессы | Запускаю проекты, строю команды, чиню что сломано | Позабочусь о ваших интересах, как о своих",
   primaryCTA: "Связаться",
   secondaryCTA: "Онлайн-консультация",
-  telegramLink: "https://t.me/yourusername",
+  telegramLink: "https://t.me/nikashikh",
+  image: "/attached_assets/generated_images/Nika_hero_portrait_5a7bc603.png",
 };
 
 export const aboutContent = {

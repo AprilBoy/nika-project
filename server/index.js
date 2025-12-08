@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import AppDatabase from './src/database.cjs';
 const db = new AppDatabase();
@@ -16,10 +17,17 @@ const projectRoot = process.env.NODE_ENV === 'production' && process.cwd().inclu
     : process.cwd();
 const app = express();
 const PORT = process.env.PORT || 3001;
+
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.raw({ type: 'multipart/form-data', limit: '5mb' }));
 app.use(express.static(path.join(projectRoot, 'dist')));
+
+// Serve attached assets
+app.use('/attached_assets', express.static(path.join(projectRoot, 'attached_assets')));
+// Serve assets
+app.use('/assets', express.static(path.join(projectRoot, 'assets')));
 // Database is already initialized as db
 // API Routes
 app.get('/api/hero', async (req, res) => {
@@ -39,6 +47,81 @@ app.put('/api/hero', async (req, res) => {
     }
     catch (error) {
         console.error('Error updating hero:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Image upload endpoint for hero section
+app.post('/api/upload/hero-image', async (req, res) => {
+    try {
+        const { image, filename, mimeType } = req.body;
+
+        if (!image || !filename || !mimeType) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Check if it's a valid image type
+        if (!mimeType.startsWith('image/')) {
+            return res.status(400).json({ error: 'Only image files are allowed' });
+        }
+
+        // Extract base64 data
+        const base64Data = image.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Check file size (5MB limit)
+        if (buffer.length > 5 * 1024 * 1024) {
+            return res.status(400).json({ error: 'File too large. Maximum size is 5MB' });
+        }
+
+        // Generate unique filename
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const extension = path.extname(filename);
+        const finalFilename = `hero_image_${uniqueSuffix}${extension}`;
+
+        // Save file
+        const filePath = path.join(projectRoot, 'attached_assets/generated_images', finalFilename);
+        fs.writeFileSync(filePath, buffer);
+
+        // Return the path to the uploaded image
+        const imagePath = `/attached_assets/generated_images/${finalFilename}`;
+        res.json({ imagePath });
+    }
+    catch (error) {
+        console.error('Error uploading hero image:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// API endpoint to list images in generated_images folder
+app.get('/api/generated-images', async (req, res) => {
+    try {
+        const imagesDir = path.join(projectRoot, 'attached_assets/generated_images');
+
+        // Check if directory exists
+        if (!fs.existsSync(imagesDir)) {
+            return res.json([]);
+        }
+
+        // Read directory contents
+        const files = fs.readdirSync(imagesDir);
+
+        // Filter for image files and create URLs
+        const imageFiles = files
+            .filter(file => {
+                const ext = path.extname(file).toLowerCase();
+                return ['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext);
+            })
+            .map(file => ({
+                filename: file,
+                url: `/attached_assets/generated_images/${file}`,
+                path: `/attached_assets/generated_images/${file}`
+            }));
+
+        res.json(imageFiles);
+    }
+    catch (error) {
+        console.error('Error listing generated images:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });

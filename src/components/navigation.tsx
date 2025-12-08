@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Menu, X } from "lucide-react";
+import { MessageCircle, Menu, X, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { isAdminSessionActive } from "@/lib/adminSession";
 
 export function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAdminSessionActiveState, setIsAdminSessionActiveState] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -13,6 +15,11 @@ export function Navigation() {
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    // Проверяем админ-сессию при монтировании компонента
+    setIsAdminSessionActiveState(isAdminSessionActive());
   }, []);
 
   const scrollToSection = (id: string) => {
@@ -59,9 +66,18 @@ export function Navigation() {
                   {link.label}
                 </button>
               ))}
+              {isAdminSessionActiveState && (
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.href = '/admin/'}
+                  data-testid="button-nav-admin"
+                >
+                  Админ-панель <Settings className="ml-2 h-4 w-4" />
+                </Button>
+              )}
               <ThemeToggle />
               <Button
-                onClick={() => window.open('https://t.me/yourusername', '_blank')}
+                onClick={() => window.open('https://t.me/nikashikh', '_blank')}
                 data-testid="button-nav-contact"
               >
                 Связаться <MessageCircle className="ml-2 h-4 w-4" />
@@ -102,11 +118,25 @@ export function Navigation() {
                   {link.label}
                 </button>
               ))}
+              {isAdminSessionActiveState && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                  onClick={() => {
+                    window.location.href = '/admin';
+                    setIsMobileMenuOpen(false);
+                  }}
+                  data-testid="button-mobile-admin"
+                >
+                  Админ-панель <Settings className="ml-2 h-5 w-5" />
+                </Button>
+              )}
               <Button
                 className="w-full"
                 size="lg"
                 onClick={() => {
-                  window.open('https://t.me/yourusername', '_blank');
+                  window.open('https://t.me/nikashikh', '_blank');
                   setIsMobileMenuOpen(false);
                 }}
                 data-testid="button-mobile-contact"

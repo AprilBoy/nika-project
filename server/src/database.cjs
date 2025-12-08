@@ -33,6 +33,7 @@ class AppDatabase {
         primaryCTA TEXT NOT NULL,
         secondaryCTA TEXT NOT NULL,
         telegramLink TEXT NOT NULL,
+        image TEXT,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -158,7 +159,7 @@ class AppDatabase {
           description: "Превращаю хаос в работающие процессы | Запускаю проекты, строю команды, чиню что сломано | Позабочусь о ваших интересах, как о своих",
           primaryCTA: "Связаться",
           secondaryCTA: "Онлайн-консультация",
-          telegramLink: "https://t.me/yourusername"
+          telegramLink: "https://t.me/nikashikh"
         },
         aboutContent: {
           title: "Кто я?",
@@ -303,6 +304,7 @@ class AppDatabase {
         primaryCTA: row.primaryCTA,
         secondaryCTA: row.secondaryCTA,
         telegramLink: row.telegramLink,
+        image: row.image,
         updatedAt: row.updatedAt
       };
     }
@@ -319,6 +321,7 @@ class AppDatabase {
         primaryCTA = ?,
         secondaryCTA = ?,
         telegramLink = ?,
+        image = ?,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = 1
     `);
@@ -330,7 +333,8 @@ class AppDatabase {
       data.description,
       data.primaryCTA,
       data.secondaryCTA,
-      data.telegramLink
+      data.telegramLink,
+      data.image || null
     );
 
     return this.getHero();
