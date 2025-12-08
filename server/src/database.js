@@ -191,7 +191,7 @@ class AppDatabase {
           primaryCTA: "Связаться",
           secondaryCTA: "Онлайн-консультация",
           telegramLink: "https://t.me/nikashikh",
-          image: "/attached_assets/generated_images/Nika_hero_portrait_5a7bc603.png"
+          image: "/attached_assets/generated_images/IMG_6236_no_bg.png"
         },
         aboutContent: {
           title: "Кто я?",

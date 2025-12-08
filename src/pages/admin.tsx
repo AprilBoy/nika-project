@@ -20,7 +20,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Navigation } from '@/components/navigation';
 import { AdminNavigation } from '@/components/admin-navigation';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { AdminProtectedRoute } from '@/components/admin-protected-route';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingState, SavingState } from '@/components/loading-state';

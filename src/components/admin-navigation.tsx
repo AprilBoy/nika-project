@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Menu, X, ArrowLeft, Settings, Plus, LogOut } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "./admin-auth";
 import { db } from "@/lib/database";
 
@@ -151,12 +150,10 @@ export function AdminNavigation({ onAdd, addButtonText }: AdminNavigationProps =
                 <LogOut className="h-4 w-4" />
                 Выйти
               </Button>
-              <ThemeToggle />
             </nav>
 
             {/* Mobile Controls */}
             <div className="lg:hidden flex items-center gap-2">
-              <ThemeToggle />
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 hover:bg-muted rounded-lg transition-colors"

@@ -52,14 +52,18 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div 
+      className="min-h-screen"
+      style={{
+        background: 'linear-gradient(to bottom right, #015645, #022620, #4e6534, #141e13)'
+      }}
+    >
       <Navigation />
 
       {/* Hero Section */}
-      <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+      <section id="hero" className="relative h-[824px] flex items-center justify-center overflow-hidden pt-20">
         
-        <div className="container relative z-10 px-6 md:px-12 max-w-7xl mx-auto py-12">
+        <div className="container relative z-10 px-6 md:px-12 max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Image for mobile (< 1024px) */}
             <div className="relative lg:h-[500px] h-[350px] rounded-2xl overflow-hidden shadow-2xl lg:hidden mb-8">
@@ -73,7 +77,7 @@ export default function Home() {
             {/* Left Content */}
             <div className="space-y-8">
               <div className="space-y-6">
-                <Badge className="text-sm px-4 py-2" variant="secondary" data-testid="badge-experience">
+                <Badge className="text-sm px-4 py-2" variant="outline" data-testid="badge-experience">
                   {heroData.badge}
                 </Badge>
                 <div className="space-y-3">
@@ -109,7 +113,7 @@ export default function Home() {
             </div>
 
             {/* Right Image for desktop (>= 1024px) */}
-            <div className="relative lg:h-[500px] h-[350px] rounded-2xl overflow-hidden shadow-2xl hidden lg:block">
+            <div className="relative lg:h-[800px] h-[150px] rounded-2xl overflow-hidden hidden lg:block">
               <img
                 src={heroData.image}
                 alt="Ника Шихлинская - Системный операционный партнер"
@@ -122,16 +126,16 @@ export default function Home() {
         {/* Scroll Indicator */}
         <button
           onClick={() => scrollToSection('about')}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce hidden lg:block"
+          className="absolute bottom-12 left-1/2 -translate-x-1/2 -translate-y-2/3 animate-bounce hidden lg:block z-20 cursor-pointer"
           data-testid="button-scroll-down"
         >
-          <ChevronDown className="h-12 w-12 text-muted-foreground" />
+          <ChevronDown className="h-16 w-16 text-muted-foreground" />
         </button>
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-24 md:py-32 bg-muted/30">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+      <section id="about" className="py-24 md:py-32 relative">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-about-title">
               {aboutData.title}
@@ -163,8 +167,8 @@ export default function Home() {
       </section>
 
       {/* How I Work Section */}
-      <section id="process" className="py-24 md:py-32">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+      <section id="process" className="py-24 md:py-32 relative">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-process-title">
               Как я работаю
@@ -215,8 +219,8 @@ export default function Home() {
       </section>
 
       {/* Who I Work With Section */}
-      <section id="clients" className="py-24 md:py-32 bg-muted/30">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+      <section id="clients" className="py-24 md:py-32 relative">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-clients-title">
               С кем я работаю
@@ -241,8 +245,8 @@ export default function Home() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-24 md:py-32">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+      <section id="services" className="py-24 md:py-32 relative">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-services-title">
               Форматы работы
@@ -318,8 +322,8 @@ export default function Home() {
       </section>
 
       {/* Projects Section */}
-      <section id="projects" className="py-24 md:py-32">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+      <section id="projects" className="py-24 md:py-32 relative">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-projects-title">
               Проекты и кейсы
@@ -385,8 +389,8 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-24 md:py-32 bg-muted/30">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+      <section id="testimonials" className="py-24 md:py-32 relative">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-testimonials-title">
               Отзывы
@@ -431,8 +435,8 @@ export default function Home() {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-24 md:py-32 bg-muted/30">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+      <section id="contact" className="py-24 md:py-32 relative">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold">
               Готовы начать работу?
@@ -447,8 +451,8 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-16 bg-card border-t">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto">
+      <footer className="py-16 relative">
+        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
             <div className="space-y-4">
               <h3 className="text-2xl font-bold text-primary">Ника Шихлинская</h3>

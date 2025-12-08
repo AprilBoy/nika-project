@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Menu, X, Settings } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { isAdminSessionActive } from "@/lib/adminSession";
 
 export function Navigation() {
@@ -75,7 +74,6 @@ export function Navigation() {
                   Админ-панель <Settings className="ml-2 h-4 w-4" />
                 </Button>
               )}
-              <ThemeToggle />
               <Button
                 onClick={() => window.open('https://t.me/nikashikh', '_blank')}
                 data-testid="button-nav-contact"
@@ -86,7 +84,6 @@ export function Navigation() {
 
             {/* Mobile Controls */}
             <div className="md:hidden flex items-center gap-2">
-              <ThemeToggle />
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 hover-elevate rounded-lg"
