@@ -78,7 +78,6 @@ export function AdminNavigation({ onAdd, addButtonText }: AdminNavigationProps =
     { label: "Отзывы", path: "testimonials" },
     { label: "Услуги", path: "services" },
     { label: "Клиенты", path: "clients" },
-    { label: "Проекты", path: "projects" },
     { label: "Заявки", path: "inquiries" },
   ];
 
@@ -173,26 +172,42 @@ export function AdminNavigation({ onAdd, addButtonText }: AdminNavigationProps =
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden pt-16 md:pt-20">
           <div className="absolute inset-0 bg-background/95 backdrop-blur-sm">
-            <nav className="container px-6 py-8 space-y-2">
+            <nav className="container px-6 py-20 space-y-2">
               {adminNavLinks.map((link) => {
                 const isActive = getActiveSection(link.path);
+                const isInquiries = link.path === 'inquiries';
+
                 return (
                   <Link
                     key={link.path}
                     to={link.path}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`block w-full text-left py-3 px-4 text-lg font-body rounded-lg transition-colors ${
+                    className={`flex w-full text-left py-3 px-4 text-lg font-body rounded-lg transition-colors gap-2 ${
                       isActive
                         ? 'bg-primary text-primary-foreground'
                         : 'hover:bg-muted'
                     }`}
                   >
                     {link.label}
+                    {isInquiries && newInquiriesCount > 0 && (
+                      <Badge variant="destructive" className="animate-bounce bg-red-500 hover:bg-red-600 text-white font-semibold shadow-lg text-xs">
+                        {newInquiriesCount}
+                      </Badge>
+                    )}
                   </Link>
                 );
               })}
 
               <div className="pt-4 border-t">
+              <Button
+                onClick={logout}
+                variant="outline"
+                size="lg"
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Выйти
+              </Button>
                 <Link
                   to="/"
                   onClick={() => setIsMobileMenuOpen(false)}

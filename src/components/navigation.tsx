@@ -27,7 +27,7 @@ export function Navigation() {
   };
 
   const navLinks = [
-    { label: "О методе", section: "about" },
+    { label: "Обо мне", section: "about" },
     { label: "Как работаю", section: "process" },
     { label: "Услуги", section: "services" },
     { label: "Отзывы", section: "testimonials" },
@@ -121,7 +121,7 @@ export function Navigation() {
                   className="w-full"
                   size="lg"
                   onClick={() => {
-                    window.location.href = '/admin';
+                    window.location.href = '/admin/';
                     setIsMobileMenuOpen(false);
                   }}
                   data-testid="button-mobile-admin"

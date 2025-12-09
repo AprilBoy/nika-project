@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { useDatabaseData } from '@/hooks/useDatabaseData';
 import { db } from '@/lib/database';
 import { MessageCircle, Send, Loader2 } from 'lucide-react';
 
@@ -28,7 +29,9 @@ interface ContactFormProps {
 
 export const ContactForm: React.FC<ContactFormProps> = ({ onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentServiceType, setCurrentServiceType] = useState<string>('');
   const { toast } = useToast();
+  const { servicesData } = useDatabaseData();
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
@@ -40,6 +43,59 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onSuccess }) => {
       message: '',
     },
   });
+
+  // Check URL parameters for pre-selected service type
+  useEffect(() => {
+    const checkUrlParams = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const serviceType = urlParams.get('service');
+
+      if (serviceType !== currentServiceType) {
+        setCurrentServiceType(serviceType || '');
+
+        if (serviceType && servicesData.length > 0) {
+          const availableServiceIds = servicesData.filter(service => service.available).map(service => service.id);
+          const validServiceTypes = [...availableServiceIds, 'other'];
+
+          if (validServiceTypes.includes(serviceType)) {
+            form.setValue('serviceType', serviceType);
+            // Clean up URL parameter after setting the value
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('service');
+            window.history.replaceState({}, '', newUrl.toString());
+          }
+        }
+      }
+    };
+
+    // Check immediately
+    checkUrlParams();
+
+    // Listen for navigation events
+    const handlePopState = () => checkUrlParams();
+
+    // Listen for pushState/replaceState changes
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function(...args) {
+      originalPushState.apply(this, args);
+      setTimeout(checkUrlParams, 0);
+    };
+
+    history.replaceState = function(...args) {
+      originalReplaceState.apply(this, args);
+      setTimeout(checkUrlParams, 0);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  }, [form, servicesData, currentServiceType]);
 
   const onSubmit = async (data: ContactFormData) => {
     setIsSubmitting(true);
@@ -144,10 +200,13 @@ export const ContactForm: React.FC<ContactFormProps> = ({ onSuccess }) => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="consultation">Консультация</SelectItem>
-                        <SelectItem value="audit">Аудит проекта</SelectItem>
-                        <SelectItem value="management">Погружение в проект</SelectItem>
-                        <SelectItem value="full-service">Ведение под ключ</SelectItem>
+                        {servicesData
+                          .filter(service => service.available)
+                          .map(service => (
+                            <SelectItem key={service.id} value={service.id}>
+                              {service.title}
+                            </SelectItem>
+                          ))}
                         <SelectItem value="other">Другое</SelectItem>
                       </SelectContent>
                     </Select>
