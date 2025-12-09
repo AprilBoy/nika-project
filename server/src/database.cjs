@@ -112,6 +112,7 @@ class AppDatabase {
         imageUrl TEXT,
         link TEXT,
         featured BOOLEAN DEFAULT 0,
+        status TEXT DEFAULT 'new' CHECK (status IN ('new', 'in-progress', 'completed', 'planned', 'cancelled', 'none')),
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -704,7 +705,7 @@ class AppDatabase {
       category: row.category,
       imageUrl: row.imageUrl,
       link: row.link,
-      featured: Boolean(row.featured),
+      status: row.status,
       updatedAt: row.updatedAt
     }));
   }
@@ -712,8 +713,8 @@ class AppDatabase {
   createProject(data) {
     const id = `project-${Date.now()}`;
     const insert = this.db.prepare(`
-      INSERT INTO projects (id, title, description, category, imageUrl, link, featured)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO projects (id, title, description, category, imageUrl, link, featured, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     insert.run(
@@ -723,7 +724,8 @@ class AppDatabase {
       data.category,
       data.imageUrl || null,
       data.link || null,
-      data.featured ? 1 : 0
+      data.featured ? 1 : 0,
+      data.status || 'new'
     );
 
     return this.getProject(id);
@@ -740,6 +742,7 @@ class AppDatabase {
         imageUrl: row.imageUrl,
         link: row.link,
         featured: Boolean(row.featured),
+        status: row.status,
         updatedAt: row.updatedAt
       };
     }
@@ -755,6 +758,7 @@ class AppDatabase {
         imageUrl = ?,
         link = ?,
         featured = ?,
+        status = ?,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
@@ -766,6 +770,7 @@ class AppDatabase {
       data.imageUrl || null,
       data.link || null,
       data.featured ? 1 : 0,
+      data.status || 'new',
       id
     );
 

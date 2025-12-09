@@ -63,6 +63,7 @@ export interface Project {
   imageUrl?: string;
   link?: string;
   featured: boolean;
+  status?: string;
 }
 
 // API base URL

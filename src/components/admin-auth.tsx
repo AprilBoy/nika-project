@@ -125,9 +125,12 @@ export function AdminLogin() {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${
-      isDark ? 'bg-slate-900' : 'bg-gray-50'
-    }`}>
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: 'linear-gradient(to bottom right, #015645, #022620, #4e6534, #141e13)'
+      }}
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">

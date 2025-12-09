@@ -43,18 +43,18 @@ export function Navigation() {
         }`}
       >
         <div className="container mx-auto px-6 md:px-12 max-w-7xl">
-          <div className="flex items-center justify-between h-16 md:h-20">
+          <div className="flex justify-between lg:flex-row md:flex-col sm:flex-row xs:flex-row lg:items-center lg:justify-between md:flex-start md:justify-start md:gap-2 sm:justify-between lg:h-16 md:h-32">
             {/* Logo */}
             <button
               onClick={() => scrollToSection("hero")}
-              className="text-xl md:text-2xl font-bold text-primary hover-elevate px-3 py-2 rounded-lg transition-colors"
+              className="text-xl md:text-2xl max-w-[max-content] font-bold text-primary hover-elevate px-3 py-2 rounded-lg transition-colors"
               data-testid="button-logo"
             >
               Ника Шихлинская
             </button>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-6 lg:mt-0 mt-4">
               {navLinks.map((link) => (
                 <button
                   key={link.section}
@@ -82,8 +82,8 @@ export function Navigation() {
               </Button>
             </nav>
 
-            {/* Mobile Controls */}
-            <div className="md:hidden flex items-center gap-2">
+            {/* Mobile Controls - всегда справа */}
+            <div className="md:hidden flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 hover-elevate rounded-lg"

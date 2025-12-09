@@ -63,17 +63,9 @@ export default function Home() {
       {/* Hero Section */}
       <section id="hero" className="relative h-[824px] flex items-center justify-center overflow-hidden pt-20">
         
-        <div className="container relative z-10 px-6 md:px-12 max-w-7xl mx-auto">
+        <div className="container relative z-10 px-6 md:px-12 max-w-8xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Image for mobile (< 1024px) */}
-            <div className="relative lg:h-[500px] h-[350px] rounded-2xl overflow-hidden shadow-2xl lg:hidden mb-8">
-              <img
-                src={heroData.image}
-                alt="Ника Шихлинская - Системный операционный партнер"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
             {/* Left Content */}
             <div className="space-y-8">
               <div className="space-y-6">
@@ -135,7 +127,7 @@ export default function Home() {
 
       {/* About Section */}
       <section id="about" className="py-24 md:py-32 relative">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
+        <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-about-title">
               {aboutData.title}
@@ -168,7 +160,7 @@ export default function Home() {
 
       {/* How I Work Section */}
       <section id="process" className="py-24 md:py-32 relative">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
+        <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-process-title">
               Как я работаю
@@ -220,7 +212,7 @@ export default function Home() {
 
       {/* Who I Work With Section */}
       <section id="clients" className="py-24 md:py-32 relative">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
+        <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-clients-title">
               С кем я работаю
@@ -246,7 +238,7 @@ export default function Home() {
 
       {/* Services Section */}
       <section id="services" className="py-24 md:py-32 relative">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
+        <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-services-title">
               Форматы работы
@@ -323,7 +315,7 @@ export default function Home() {
 
       {/* Projects Section */}
       <section id="projects" className="py-24 md:py-32 relative">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
+        <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-projects-title">
               Проекты и кейсы
@@ -335,8 +327,48 @@ export default function Home() {
 
           {projectsData.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {projectsData.filter(project => project.featured).map((project) => (
-                <Card key={project.id} className="hover-elevate transition-all overflow-hidden">
+              {projectsData.map((project) => (
+                <Card key={project.id} className="hover-elevate transition-all overflow-hidden relative">
+                  {/* Диагональная лента со статусом */}
+                  {project.status && project.status !== 'none' && (
+                    <div className="absolute top-0 right-0 z-10" style={{ width: '0', height: '0', overflow: 'visible' }}>
+                      <div 
+                        className="absolute whitespace-nowrap text-xs font-bold text-white shadow-lg"
+                        style={{
+                          backgroundColor: (() => {
+                            const statusLower = project.status.toLowerCase();
+                            if (statusLower === 'completed' || statusLower.includes('завершен')) {
+                              return '#22c55e'; // green
+                            } else if (statusLower === 'in-progress' || statusLower.includes('работе') || statusLower.includes('работа')) {
+                              return '#3b82f6'; // blue
+                            } else if (statusLower === 'planned' || statusLower.includes('запланирован')) {
+                              return '#f59e0b'; // orange
+                            } else if (statusLower === 'new' || statusLower.includes('новый')) {
+                              return '#8b5cf6'; // purple
+                            }
+                            return '#6b7280'; // gray
+                          })(),
+                          top: '32px',
+                          right: '-60px',
+                          transform: 'rotate(45deg)',
+                          transformOrigin: 'center',
+                          padding: '6px 48px',
+                          width: '200px',
+                          textAlign: 'center',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                        }}
+                      >
+                        {(() => {
+                          const statusLower = project.status.toLowerCase();
+                          if (statusLower === 'new') return 'Новый';
+                          if (statusLower === 'planned') return 'Запланирован';
+                          if (statusLower === 'in-progress') return 'В работе';
+                          if (statusLower === 'completed') return 'Завершен';
+                          return project.status;
+                        })()}
+                      </div>
+                    </div>
+                  )}
                   {project.imageUrl && (
                     <div className="aspect-video bg-muted overflow-hidden">
                       <img
@@ -390,7 +422,7 @@ export default function Home() {
 
       {/* Testimonials Section */}
       <section id="testimonials" className="py-24 md:py-32 relative">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
+        <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-testimonials-title">
               Отзывы
@@ -404,9 +436,7 @@ export default function Home() {
             {testimonialsData.map((testimonial, index) => (
               <Card
                 key={testimonial.id || index}
-                className={`p-8 hover-elevate transition-all ${
-                  index === 1 ? 'md:col-span-2 lg:col-span-1' : ''
-                }`}
+                className="p-8 hover-elevate transition-all md:col-span-2 lg:col-span-1"
               >
                 <div className="flex items-start gap-4 mb-6">
                   <Avatar className="w-16 h-16 border-2 border-primary/20">
@@ -436,7 +466,7 @@ export default function Home() {
 
       {/* Contact Section */}
       <section id="contact" className="py-24 md:py-32 relative">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
+        <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold">
               Готовы начать работу?
@@ -452,7 +482,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-16 relative">
-        <div className="container px-6 md:px-12 max-w-6xl mx-auto relative z-10">
+        <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
             <div className="space-y-4">
               <h3 className="text-2xl font-bold text-primary">Ника Шихлинская</h3>

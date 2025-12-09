@@ -112,9 +112,17 @@ class AppDatabase {
         imageUrl TEXT,
         link TEXT,
         featured BOOLEAN DEFAULT 0,
+        status TEXT,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Add status column if it doesn't exist (for existing databases)
+    try {
+      this.db.exec(`ALTER TABLE projects ADD COLUMN status TEXT`);
+    } catch (e) {
+      // Column already exists, ignore
+    }
 
     // Inquiries table
     this.db.exec(`
@@ -738,6 +746,7 @@ class AppDatabase {
       imageUrl: row.imageUrl,
       link: row.link,
       featured: Boolean(row.featured),
+      status: row.status || null,
       updatedAt: row.updatedAt
     }));
   }
@@ -745,8 +754,8 @@ class AppDatabase {
   createProject(data) {
     const id = `project-${Date.now()}`;
     const insert = this.db.prepare(`
-      INSERT INTO projects (id, title, description, category, imageUrl, link, featured)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO projects (id, title, description, category, imageUrl, link, featured, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     insert.run(
@@ -756,7 +765,8 @@ class AppDatabase {
       data.category,
       data.imageUrl || null,
       data.link || null,
-      data.featured ? 1 : 0
+      data.featured ? 1 : 0,
+      data.status || null
     );
 
     return this.getProject(id);
@@ -773,6 +783,7 @@ class AppDatabase {
         imageUrl: row.imageUrl,
         link: row.link,
         featured: Boolean(row.featured),
+        status: row.status || null,
         updatedAt: row.updatedAt
       };
     }
@@ -788,6 +799,7 @@ class AppDatabase {
         imageUrl = ?,
         link = ?,
         featured = ?,
+        status = ?,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
@@ -799,6 +811,7 @@ class AppDatabase {
       data.imageUrl || null,
       data.link || null,
       data.featured ? 1 : 0,
+      data.status || null,
       id
     );
 

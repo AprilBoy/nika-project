@@ -185,8 +185,19 @@ interface Project {
   category: string;
   imageUrl?: string;
   link?: string;
-  featured: boolean;
+  status?: string;
 }
+
+// Статусы проектов
+type ProjectStatus = 'new' | 'planned' | 'in-progress' | 'completed' | 'none';
+
+const PROJECT_STATUSES: { value: ProjectStatus; label: string }[] = [
+  { value: 'none', label: 'Без статуса' },
+  { value: 'new', label: 'Новый' },
+  { value: 'planned', label: 'Запланирован' },
+  { value: 'in-progress', label: 'В работе' },
+  { value: 'completed', label: 'Завершен' },
+];
 
 interface Inquiry {
   id: number;
@@ -2204,7 +2215,8 @@ const ProjectsAdmin = () => {
           category: p.category,
           imageUrl: p.imageUrl,
           link: p.link,
-          featured: p.featured
+          featured: p.featured,
+          status: p.status || 'none'
         }));
         setProjects(formattedProjects);
       } catch (error) {
@@ -2223,7 +2235,9 @@ const ProjectsAdmin = () => {
   }, [toast]);
 
   const handleEdit = (project: Project) => {
-    setCurrentProject(project);
+    setCurrentProject({
+      ...project,
+    });
     setEditingId(`project-${project.id}`);
     setIsDialogOpen(true);
   };
@@ -2233,7 +2247,7 @@ const ProjectsAdmin = () => {
       title: '',
       description: '',
       category: '',
-      featured: false
+      status: '',
     });
     setEditingId(null);
     setIsDialogOpen(true);
@@ -2249,7 +2263,7 @@ const ProjectsAdmin = () => {
           category: currentProject.category || '',
           imageUrl: currentProject.imageUrl,
           link: currentProject.link,
-          featured: currentProject.featured || false
+          status: currentProject.status
         });
 
         const formattedProject: Project = {
@@ -2259,7 +2273,7 @@ const ProjectsAdmin = () => {
           category: updatedProject.category,
           imageUrl: updatedProject.imageUrl,
           link: updatedProject.link,
-          featured: updatedProject.featured
+          status: updatedProject.status || 'none'
         };
 
         setProjects(projects.map(p =>
@@ -2272,7 +2286,7 @@ const ProjectsAdmin = () => {
           category: currentProject.category || '',
           imageUrl: currentProject.imageUrl,
           link: currentProject.link,
-          featured: currentProject.featured || false
+          status: currentProject.status
         });
 
         const formattedProject: Project = {
@@ -2282,7 +2296,7 @@ const ProjectsAdmin = () => {
           category: newProject.category,
           imageUrl: newProject.imageUrl,
           link: newProject.link,
-          featured: newProject.featured
+          status: newProject.status
         };
 
         setProjects([...projects, formattedProject]);
@@ -2364,40 +2378,52 @@ const ProjectsAdmin = () => {
                 <TableRow>
                   <TableHead>Название</TableHead>
                   <TableHead>Категория</TableHead>
-                  <TableHead>Рекомендуемый</TableHead>
+                  <TableHead>Статус</TableHead>
                   <TableHead className="w-32">Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projects.map((project) => (
-                  <TableRow key={project.id}>
-                    <TableCell className="font-medium">{project.title}</TableCell>
-                    <TableCell>{project.category}</TableCell>
-                    <TableCell>
-                      <Badge variant={project.featured ? "default" : "secondary"}>
-                        {project.featured ? "Рекомендуемый" : "Обычный"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(project)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(project.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {projects.map((project) => {
+                  const getStatusBadge = (status?: string) => {
+                    if (!status || status === '' || status === 'none') {
+                      return <Badge variant="secondary">Без статуса</Badge>;
+                    }
+                    const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
+                      'new': { variant: 'outline', label: 'Новый' },
+                      'planned': { variant: 'secondary', label: 'Запланирован' },
+                      'in-progress': { variant: 'default', label: 'В работе' },
+                      'completed': { variant: 'default', label: 'Завершен' },
+                    };
+                    const config = statusConfig[status] || { variant: 'secondary' as const, label: status };
+                    return <Badge variant={config.variant}>{config.label}</Badge>;
+                  };
+                  
+                  return (
+                    <TableRow key={project.id}>
+                      <TableCell className="font-medium">{project.title}</TableCell>
+                      <TableCell>{project.category}</TableCell>
+                      <TableCell>{getStatusBadge(project.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(project)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(project.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
 
@@ -2474,17 +2500,22 @@ const ProjectsAdmin = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Рекомендуемый проект</Label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="featured"
-                    checked={currentProject.featured || false}
-                    onChange={(e) => setCurrentProject({ ...currentProject, featured: e.target.checked })}
-                    className="rounded"
-                  />
-                  <Label htmlFor="featured">Отметить как рекомендуемый</Label>
-                </div>
+                <Label>Статус проекта</Label>
+                <Select
+                  value={currentProject.status || 'none'}
+                  onValueChange={(value) => setCurrentProject({ ...currentProject, status: value as ProjectStatus })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите статус" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PROJECT_STATUSES.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

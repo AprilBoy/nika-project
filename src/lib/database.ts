@@ -71,7 +71,7 @@ export interface ProjectData {
   category: string;
   imageUrl?: string;
   link?: string;
-  featured: boolean;
+  status?: string;
   updatedAt: string;
 }
 
