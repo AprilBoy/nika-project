@@ -1,493 +1,475 @@
 #!/usr/bin/env node
 
-const Database = require('better-sqlite3');
-const path = require('path');
+/**
+ * Safe migration script for Nika Project
+ *
+ * - no eval, no regex
+ * - uses better-sqlite3 synchronously
+ * - creates missing tables/columns
+ * - simple migrations table for idempotence
+ * - reads default content from ../src/data/default-content.json (optional)
+ */
+
 const fs = require('fs');
+const path = require('path');
+const Database = require('better-sqlite3');
 
-// Import default content
-const contentPath = path.join(__dirname, '../src/data/content.ts');
-let defaultContent;
+const DB_PATH = path.join(__dirname, '../data/app.db');
+const DEFAULT_CONTENT_PATH = path.join(__dirname, '../src/data/default-content.json');
 
-try {
-  // Read and parse the TypeScript file
-  const content = fs.readFileSync(contentPath, 'utf8');
-
-  // Extract data using regex
-  const heroMatch = content.match(/export const heroContent = ({[\s\S]*?});/);
-  const aboutMatch = content.match(/export const aboutContent = ({[\s\S]*?});/);
-  const processMatch = content.match(/export const processSteps = (\[[\s\S]*?\]);/);
-  const clientsMatch = content.match(/export const clientSegments = (\[[\s\S]*?\]);/);
-  const servicesMatch = content.match(/export const serviceFormats = (\[[\s\S]*?\]);/);
-  const testimonialsMatch = content.match(/export const testimonials = (\[[\s\S]*?\]);/);
-
-  if (heroMatch && aboutMatch && processMatch && clientsMatch && servicesMatch && testimonialsMatch) {
-    // Use eval to parse the JavaScript objects
-    const heroContent = eval(`(${heroMatch[1]})`);
-    const aboutContent = eval(`(${aboutMatch[1]})`);
-    const processSteps = eval(`(${processMatch[1]})`);
-    const clientSegments = eval(`(${clientsMatch[1]})`);
-    const serviceFormats = eval(`(${servicesMatch[1]})`);
-    const testimonials = eval(`(${testimonialsMatch[1]})`);
-
-    defaultContent = {
-      heroContent,
-      aboutContent,
-      processSteps,
-      clientSegments,
-      serviceFormats,
-      testimonials
-    };
+function loadDefaultContent() {
+  if (!fs.existsSync(DEFAULT_CONTENT_PATH)) {
+    console.warn(`Default content file not found at ${DEFAULT_CONTENT_PATH}. Skipping default data initialization.`);
+    return null;
   }
-} catch (error) {
-  console.error('Error reading default content:', error);
+
+  try {
+    const txt = fs.readFileSync(DEFAULT_CONTENT_PATH, 'utf8');
+    const parsed = JSON.parse(txt);
+    console.log('Loaded default content from default-content.json');
+    return parsed;
+  } catch (err) {
+    console.error('Failed to parse default-content.json:', err);
+    return null;
+  }
 }
 
-if (!defaultContent) {
-  console.error('Could not parse default content. Exiting...');
-  process.exit(1);
+// Utility: check if column exists
+function hasColumn(db, table, column) {
+  try {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all();
+    return cols.some(c => c.name === column);
+  } catch (err) {
+    return false;
+  }
 }
 
-class MigrationScript {
-  constructor() {
-    const dbPath = path.join(__dirname, '../data/app.db');
-    const dataDir = path.dirname(dbPath);
+// Utility: create directory and DB connection
+function openDatabase() {
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const db = new Database(DB_PATH);
+  // enable WAL for safety/performance
+  try { db.pragma('journal_mode = WAL'); } catch (e) { /* ignore */ }
+  return db;
+}
 
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+// Simple migrations mechanism
+const MIGRATIONS = [
+  {
+    id: '000_create_base_tables',
+    up(db) {
+      // Create migrations table
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS migrations (
+          id TEXT PRIMARY KEY,
+          appliedAt TEXT NOT NULL
+        );
+      `);
+
+      // hero table (single row with id 1)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS hero (
+          id INTEGER PRIMARY KEY,
+          badge TEXT,
+          title TEXT,
+          subtitle TEXT,
+          description TEXT,
+          primaryCTA TEXT,
+          secondaryCTA TEXT,
+          telegramLink TEXT,
+          image TEXT,
+          updatedAt TEXT
+        );
+      `);
+
+      // about table
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS about (
+          id INTEGER PRIMARY KEY,
+          title TEXT,
+          subtitle TEXT,
+          highlights TEXT,
+          image TEXT,
+          updatedAt TEXT
+        );
+      `);
+
+      // process_steps
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS process_steps (
+          id TEXT PRIMARY KEY,
+          number INTEGER,
+          title TEXT,
+          description TEXT,
+          examples TEXT,
+          details TEXT
+        );
+      `);
+
+      // client_segments
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS client_segments (
+          id TEXT PRIMARY KEY,
+          title TEXT,
+          description TEXT,
+          icon TEXT
+        );
+      `);
+
+      // services
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS services (
+          id TEXT PRIMARY KEY,
+          title TEXT,
+          price TEXT,
+          duration TEXT,
+          description TEXT,
+          examples TEXT,
+          cta TEXT,
+          available INTEGER DEFAULT 0,
+          featured INTEGER DEFAULT 0
+        );
+      `);
+
+      // testimonials
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS testimonials (
+          id TEXT PRIMARY KEY,
+          name TEXT,
+          role TEXT,
+          company TEXT,
+          quote TEXT
+        );
+      `);
+
+      // projects
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS projects (
+          id TEXT PRIMARY KEY,
+          title TEXT,
+          description TEXT,
+          category TEXT,
+          imageUrl TEXT,
+          link TEXT,
+          featured INTEGER DEFAULT 0
+        );
+      `);
+
+      // inquiries
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS inquiries (
+          id TEXT PRIMARY KEY,
+          name TEXT,
+          email TEXT,
+          phone TEXT,
+          message TEXT,
+          serviceType TEXT,
+          status TEXT DEFAULT 'new'
+        );
+      `);
     }
-
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL');
-  }
-
-  async migrateFromLocalStorage() {
-    console.log('Starting migration from localStorage...');
-
-    // First, ensure database schema is up to date
-    this.ensureSchemaUpToDate();
-
-    // Check if we have localStorage data (simulate browser environment)
-    const localStoragePath = path.join(__dirname, '../localStorage_backup.json');
-
-    if (!fs.existsSync(localStoragePath)) {
-      console.log('No localStorage backup found. Initializing with default data...');
-      this.initDefaultData();
-      return;
-    }
-
-    try {
-      const localStorageData = JSON.parse(fs.readFileSync(localStoragePath, 'utf8'));
-      console.log('Found localStorage backup. Migrating data...');
-
-      // Migrate each section
-      this.migrateHero(localStorageData.hero);
-      this.migrateAbout(localStorageData.about);
-      this.migrateProcessSteps(localStorageData.processSteps);
-      this.migrateClientSegments(localStorageData.clientSegments);
-      this.migrateServices(localStorageData.services);
-      this.migrateTestimonials(localStorageData.testimonials);
-      this.migrateProjects(localStorageData.projects);
-      this.migrateInquiries(localStorageData.inquiries);
-
-      console.log('Migration completed successfully!');
-    } catch (error) {
-      console.error('Error during migration:', error);
-      console.log('Falling back to default data...');
-      this.initDefaultData();
-    }
-  }
-
-  ensureSchemaUpToDate() {
-    console.log('Ensuring database schema is up to date...');
-
-    try {
-      // Check if image column exists in hero table
-      const columns = this.db.prepare(`
-        PRAGMA table_info(hero)
-      `).all();
-
-      const hasImageColumn = columns.some(col => col.name === 'image');
-
-      if (!hasImageColumn) {
-        console.log('Adding image column to hero table...');
-        this.db.exec(`
-          ALTER TABLE hero ADD COLUMN image TEXT;
-        `);
-        console.log('✅ Image column added successfully');
-      } else {
-        console.log('✅ Image column already exists');
+  },
+  {
+    id: '001_ensure_columns_image',
+    up(db) {
+      // Ensure hero.image exists
+      if (!hasColumn(db, 'hero', 'image')) {
+        db.exec(`ALTER TABLE hero ADD COLUMN image TEXT;`);
+        console.log('Added column hero.image');
       }
-    } catch (error) {
-      console.error('Error ensuring schema is up to date:', error);
-      throw error;
+
+      // Ensure about.image exists
+      if (!hasColumn(db, 'about', 'image')) {
+        db.exec(`ALTER TABLE about ADD COLUMN image TEXT;`);
+        console.log('Added column about.image');
+      }
+
+      // Ensure services.available and services.featured exist (in case older schema)
+      if (!hasColumn(db, 'services', 'available')) {
+        db.exec(`ALTER TABLE services ADD COLUMN available INTEGER DEFAULT 0;`);
+        console.log('Added column services.available');
+      }
+      if (!hasColumn(db, 'services', 'featured')) {
+        db.exec(`ALTER TABLE services ADD COLUMN featured INTEGER DEFAULT 0;`);
+        console.log('Added column services.featured');
+      }
     }
   }
+];
 
-  migrateHero(heroData) {
-    if (!heroData) return;
+// Apply migrations idempotently
+function applyMigrations(db) {
+  // ensure migrations table exists (first migration will create it)
+  db.exec(`CREATE TABLE IF NOT EXISTS migrations (id TEXT PRIMARY KEY, appliedAt TEXT NOT NULL);`);
 
-    const update = this.db.prepare(`
+  const getMigration = db.prepare('SELECT id FROM migrations WHERE id = ?');
+
+  const insertMigration = db.prepare('INSERT INTO migrations (id, appliedAt) VALUES (?, ?)');
+
+  for (const m of MIGRATIONS) {
+    const found = getMigration.get(m.id);
+    if (found) {
+      console.log(`Migration ${m.id} already applied, skipping`);
+      continue;
+    }
+
+    console.log(`Applying migration ${m.id}...`);
+    const txn = db.transaction(() => {
+      m.up(db);
+      insertMigration.run(m.id, new Date().toISOString());
+    });
+
+    try {
+      txn();
+      console.log(`Migration ${m.id} applied`);
+    } catch (err) {
+      console.error(`Failed to apply migration ${m.id}:`, err);
+      throw err;
+    }
+  }
+}
+
+// Initialize default data (only if tables empty)
+function initializeDefaultData(db, defaultContent) {
+  if (!defaultContent) {
+    console.log('No default content provided - skipping default data init.');
+    return;
+  }
+
+  // HERO - if hero table empty, insert or upsert a row with id=1
+  const heroCount = db.prepare('SELECT COUNT(*) as c FROM hero').get().c;
+  if (heroCount === 0) {
+    const insertHero = db.prepare(`
+      INSERT INTO hero (id, badge, title, subtitle, description, primaryCTA, secondaryCTA, telegramLink, image, updatedAt)
+      VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    insertHero.run(
+      defaultContent.heroContent?.badge || null,
+      defaultContent.heroContent?.title || null,
+      defaultContent.heroContent?.subtitle || null,
+      defaultContent.heroContent?.description || null,
+      defaultContent.heroContent?.primaryCTA || null,
+      defaultContent.heroContent?.secondaryCTA || null,
+      defaultContent.heroContent?.telegramLink || null,
+      defaultContent.heroContent?.image || null,
+      new Date().toISOString()
+    );
+    console.log('Inserted default hero row');
+  } else {
+    // optional: update existing hero with defaults (non-destructive)
+    const updateHero = db.prepare(`
       UPDATE hero SET
-        badge = ?,
-        title = ?,
-        subtitle = ?,
-        description = ?,
-        primaryCTA = ?,
-        secondaryCTA = ?,
-        telegramLink = ?,
-        image = ?,
+        badge = COALESCE(?, badge),
+        title = COALESCE(?, title),
+        subtitle = COALESCE(?, subtitle),
+        description = COALESCE(?, description),
+        primaryCTA = COALESCE(?, primaryCTA),
+        secondaryCTA = COALESCE(?, secondaryCTA),
+        telegramLink = COALESCE(?, telegramLink),
+        image = COALESCE(?, image),
         updatedAt = ?
       WHERE id = 1
     `);
-
-    update.run(
-      heroData.badge,
-      heroData.title,
-      heroData.subtitle,
-      heroData.description,
-      heroData.primaryCTA,
-      heroData.secondaryCTA,
-      heroData.telegramLink,
-      heroData.image || null,
+    updateHero.run(
+      defaultContent.heroContent?.badge || null,
+      defaultContent.heroContent?.title || null,
+      defaultContent.heroContent?.subtitle || null,
+      defaultContent.heroContent?.description || null,
+      defaultContent.heroContent?.primaryCTA || null,
+      defaultContent.heroContent?.secondaryCTA || null,
+      defaultContent.heroContent?.telegramLink || null,
+      defaultContent.heroContent?.image || null,
       new Date().toISOString()
     );
-
-    console.log('Hero data migrated');
+    console.log('Updated existing hero row with defaults where applicable');
   }
 
-  migrateAbout(aboutData) {
-    if (!aboutData) return;
-
-    const update = this.db.prepare(`
+  // ABOUT
+  const aboutCount = db.prepare('SELECT COUNT(*) as c FROM about').get().c;
+  if (aboutCount === 0) {
+    const insertAbout = db.prepare(`
+      INSERT INTO about (id, title, subtitle, highlights, image, updatedAt)
+      VALUES (1, ?, ?, ?, ?, ?)
+    `);
+    insertAbout.run(
+      defaultContent.aboutContent?.title || null,
+      defaultContent.aboutContent?.subtitle || null,
+      defaultContent.aboutContent?.highlights ? JSON.stringify(defaultContent.aboutContent.highlights) : null,
+      defaultContent.aboutContent?.image || null,
+      new Date().toISOString()
+    );
+    console.log('Inserted default about row');
+  } else {
+    const updateAbout = db.prepare(`
       UPDATE about SET
-        title = ?,
-        subtitle = ?,
-        highlights = ?,
-        image = ?,
+        title = COALESCE(?, title),
+        subtitle = COALESCE(?, subtitle),
+        highlights = COALESCE(?, highlights),
+        image = COALESCE(?, image),
         updatedAt = ?
       WHERE id = 1
     `);
-
-    update.run(
-      aboutData.title,
-      aboutData.subtitle,
-      JSON.stringify(aboutData.highlights),
-      aboutData.image || null,
+    updateAbout.run(
+      defaultContent.aboutContent?.title || null,
+      defaultContent.aboutContent?.subtitle || null,
+      defaultContent.aboutContent?.highlights ? JSON.stringify(defaultContent.aboutContent.highlights) : null,
+      defaultContent.aboutContent?.image || null,
       new Date().toISOString()
     );
-
-    console.log('About data migrated');
+    console.log('Updated existing about row with defaults where applicable');
   }
 
-  migrateProcessSteps(processSteps) {
-    if (!processSteps || !Array.isArray(processSteps)) return;
-
-    // Clear existing data
-    this.db.prepare('DELETE FROM process_steps').run();
-
-    const insert = this.db.prepare(`
+  // PROCESS STEPS - clear only if table empty
+  const processCount = db.prepare('SELECT COUNT(*) as c FROM process_steps').get().c;
+  if (processCount === 0 && Array.isArray(defaultContent.processSteps)) {
+    const insert = db.prepare(`
       INSERT INTO process_steps (id, number, title, description, examples, details)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
-
-    processSteps.forEach(step => {
-      insert.run(
-        `process-${step.id}`,
-        step.number,
-        step.title,
-        step.description,
-        step.examples ? JSON.stringify(step.examples) : null,
-        step.details ? JSON.stringify(step.details) : null
-      );
-    });
-
-    console.log(`${processSteps.length} process steps migrated`);
-  }
-
-  migrateClientSegments(clientSegments) {
-    if (!clientSegments || !Array.isArray(clientSegments)) return;
-
-    // Clear existing data
-    this.db.prepare('DELETE FROM client_segments').run();
-
-    const insert = this.db.prepare(`
-      INSERT INTO client_segments (id, title, description, icon)
-      VALUES (?, ?, ?, ?)
-    `);
-
-    clientSegments.forEach(segment => {
-      insert.run(
-        `client-${segment.id}`,
-        segment.title,
-        segment.description,
-        segment.icon || null
-      );
-    });
-
-    console.log(`${clientSegments.length} client segments migrated`);
-  }
-
-  migrateServices(services) {
-    if (!services || !Array.isArray(services)) return;
-
-    // Clear existing data
-    this.db.prepare('DELETE FROM services').run();
-
-    const insert = this.db.prepare(`
-      INSERT INTO services (id, title, price, duration, description, examples, cta, available, featured)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    services.forEach(service => {
-      insert.run(
-        `service-${service.id}`,
-        service.title,
-        service.price,
-        service.duration || null,
-        service.description || null,
-        service.examples ? JSON.stringify(service.examples) : null,
-        service.cta,
-        service.available ? 1 : 0,
-        service.featured ? 1 : 0
-      );
-    });
-
-    console.log(`${services.length} services migrated`);
-  }
-
-  migrateTestimonials(testimonials) {
-    if (!testimonials || !Array.isArray(testimonials)) return;
-
-    // Clear existing data
-    this.db.prepare('DELETE FROM testimonials').run();
-
-    const insert = this.db.prepare(`
-      INSERT INTO testimonials (id, name, role, company, quote)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-
-    testimonials.forEach(testimonial => {
-      insert.run(
-        `testimonial-${testimonial.id}`,
-        testimonial.name,
-        testimonial.role,
-        testimonial.company,
-        testimonial.quote
-      );
-    });
-
-    console.log(`${testimonials.length} testimonials migrated`);
-  }
-
-  migrateProjects(projects) {
-    if (!projects || !Array.isArray(projects)) return;
-
-    // Clear existing data
-    this.db.prepare('DELETE FROM projects').run();
-
-    const insert = this.db.prepare(`
-      INSERT INTO projects (id, title, description, category, imageUrl, link, featured)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    projects.forEach(project => {
-      insert.run(
-        `project-${project.id}`,
-        project.title,
-        project.description,
-        project.category,
-        project.imageUrl || null,
-        project.link || null,
-        project.featured ? 1 : 0
-      );
-    });
-
-    console.log(`${projects.length} projects migrated`);
-  }
-
-  migrateInquiries(inquiries) {
-    if (!inquiries || !Array.isArray(inquiries)) return;
-
-    // Clear existing data
-    this.db.prepare('DELETE FROM inquiries').run();
-
-    const insert = this.db.prepare(`
-      INSERT INTO inquiries (id, name, email, phone, message, serviceType, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    inquiries.forEach(inquiry => {
-      insert.run(
-        `inquiry-${inquiry.id}`,
-        inquiry.name,
-        inquiry.email,
-        inquiry.phone || null,
-        inquiry.message,
-        inquiry.serviceType || null,
-        inquiry.status || 'new'
-      );
-    });
-
-    console.log(`${inquiries.length} inquiries migrated`);
-  }
-
-  initDefaultData() {
-    // Initialize with default content from content.ts
-    console.log('Initializing with default data...');
-
-    // Hero
-    const heroUpdate = this.db.prepare(`
-      UPDATE hero SET
-        badge = ?,
-        title = ?,
-        subtitle = ?,
-        description = ?,
-        primaryCTA = ?,
-        secondaryCTA = ?,
-        telegramLink = ?,
-        image = ?,
-        updatedAt = ?
-      WHERE id = 1
-    `);
-
-    heroUpdate.run(
-      defaultContent.heroContent.badge,
-      defaultContent.heroContent.title,
-      defaultContent.heroContent.subtitle,
-      defaultContent.heroContent.description,
-      defaultContent.heroContent.primaryCTA,
-      defaultContent.heroContent.secondaryCTA,
-      defaultContent.heroContent.telegramLink,
-      defaultContent.heroContent.image || null,
-      new Date().toISOString()
-    );
-
-    // About
-    const aboutUpdate = this.db.prepare(`
-      UPDATE about SET
-        title = ?,
-        subtitle = ?,
-        highlights = ?,
-        image = ?,
-        updatedAt = ?
-      WHERE id = 1
-    `);
-
-    aboutUpdate.run(
-      defaultContent.aboutContent.title,
-      defaultContent.aboutContent.subtitle,
-      JSON.stringify(defaultContent.aboutContent.highlights),
-      defaultContent.aboutContent.image || null,
-      new Date().toISOString()
-    );
-
-    // Process steps
-    const processCount = this.db.prepare('SELECT COUNT(*) as count FROM process_steps').get();
-    if (processCount.count === 0 && defaultContent.processSteps.length > 0) {
-      const processInsert = this.db.prepare(`
-        INSERT INTO process_steps (id, number, title, description, examples, details)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
-
-      defaultContent.processSteps.forEach(step => {
-        processInsert.run(
-          `process-${step.id}`,
-          step.number,
-          step.title,
-          step.description,
+    const t = db.transaction((steps) => {
+      steps.forEach(step => {
+        insert.run(
+          `process-${step.id || step.number || Math.random().toString(36).slice(2,8)}`,
+          step.number || null,
+          step.title || null,
+          step.description || null,
           step.examples ? JSON.stringify(step.examples) : null,
           step.details ? JSON.stringify(step.details) : null
         );
       });
-    }
-
-    // Client segments
-    const clientCount = this.db.prepare('SELECT COUNT(*) as count FROM client_segments').get();
-    if (clientCount.count === 0 && defaultContent.clientSegments.length > 0) {
-      const clientInsert = this.db.prepare(`
-        INSERT INTO client_segments (id, title, description, icon)
-        VALUES (?, ?, ?, ?)
-      `);
-
-      defaultContent.clientSegments.forEach(segment => {
-        clientInsert.run(
-          `client-${segment.id}`,
-          segment.title,
-          segment.description,
-          segment.icon || null
-        );
-      });
-    }
-
-    // Services
-    const serviceCount = this.db.prepare('SELECT COUNT(*) as count FROM services').get();
-    if (serviceCount.count === 0 && defaultContent.serviceFormats.length > 0) {
-      const serviceInsert = this.db.prepare(`
-        INSERT INTO services (id, title, price, duration, description, examples, cta, available, featured)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      defaultContent.serviceFormats.forEach(service => {
-        serviceInsert.run(
-          `service-${service.id}`,
-          service.title,
-          service.price,
-          service.duration || null,
-          service.description || null,
-          service.examples ? JSON.stringify(service.examples) : null,
-          service.cta,
-          service.available ? 1 : 0,
-          service.featured ? 1 : 0
-        );
-      });
-    }
-
-    // Testimonials
-    const testimonialCount = this.db.prepare('SELECT COUNT(*) as count FROM testimonials').get();
-    if (testimonialCount.count === 0 && defaultContent.testimonials.length > 0) {
-      const testimonialInsert = this.db.prepare(`
-        INSERT INTO testimonials (id, name, role, company, quote)
-        VALUES (?, ?, ?, ?, ?)
-      `);
-
-      defaultContent.testimonials.forEach(testimonial => {
-        testimonialInsert.run(
-          `testimonial-${testimonial.id}`,
-          testimonial.name,
-          testimonial.role,
-          testimonial.company,
-          testimonial.quote
-        );
-      });
-    }
-
-    console.log('Default data initialized successfully');
+    });
+    t(defaultContent.processSteps);
+    console.log(`Inserted ${defaultContent.processSteps.length} process steps`);
   }
 
-  close() {
-    if (this.db) {
-      this.db.close();
-    }
+  // CLIENT SEGMENTS
+  const clientCount = db.prepare('SELECT COUNT(*) as c FROM client_segments').get().c;
+  if (clientCount === 0 && Array.isArray(defaultContent.clientSegments)) {
+    const insert = db.prepare(`
+      INSERT INTO client_segments (id, title, description, icon)
+      VALUES (?, ?, ?, ?)
+    `);
+    const t = db.transaction((list) => {
+      list.forEach(item => {
+        insert.run(
+          `client-${item.id || Math.random().toString(36).slice(2,8)}`,
+          item.title || null,
+          item.description || null,
+          item.icon || null
+        );
+      });
+    });
+    t(defaultContent.clientSegments);
+    console.log(`Inserted ${defaultContent.clientSegments.length} client segments`);
   }
+
+  // SERVICES
+  const servicesCount = db.prepare('SELECT COUNT(*) as c FROM services').get().c;
+  if (servicesCount === 0 && Array.isArray(defaultContent.serviceFormats)) {
+    const insert = db.prepare(`
+      INSERT INTO services (id, title, price, duration, description, examples, cta, available, featured)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const t = db.transaction((list) => {
+      list.forEach(item => {
+        insert.run(
+          `service-${item.id || Math.random().toString(36).slice(2,8)}`,
+          item.title || null,
+          item.price || null,
+          item.duration || null,
+          item.description ? item.description : null,
+          item.examples ? JSON.stringify(item.examples) : null,
+          item.cta || null,
+          item.available ? 1 : 0,
+          item.featured ? 1 : 0
+        );
+      });
+    });
+    t(defaultContent.serviceFormats);
+    console.log(`Inserted ${defaultContent.serviceFormats.length} services`);
+  }
+
+  // TESTIMONIALS
+  const testimonialsCount = db.prepare('SELECT COUNT(*) as c FROM testimonials').get().c;
+  if (testimonialsCount === 0 && Array.isArray(defaultContent.testimonials)) {
+    const insert = db.prepare(`
+      INSERT INTO testimonials (id, name, role, company, quote)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    const t = db.transaction((list) => {
+      list.forEach(item => {
+        insert.run(
+          `testimonial-${item.id || Math.random().toString(36).slice(2,8)}`,
+          item.name || null,
+          item.role || null,
+          item.company || null,
+          item.quote || null
+        );
+      });
+    });
+    t(defaultContent.testimonials);
+    console.log(`Inserted ${defaultContent.testimonials.length} testimonials`);
+  }
+
+  // PROJECTS
+  const projectsCount = db.prepare('SELECT COUNT(*) as c FROM projects').get().c;
+  if (projectsCount === 0 && Array.isArray(defaultContent.projects)) {
+    const insert = db.prepare(`
+      INSERT INTO projects (id, title, description, category, imageUrl, link, featured)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    const t = db.transaction((list) => {
+      list.forEach(item => {
+        insert.run(
+          `project-${item.id || Math.random().toString(36).slice(2,8)}`,
+          item.title || null,
+          item.description || null,
+          item.category || null,
+          item.imageUrl || null,
+          item.link || null,
+          item.featured ? 1 : 0
+        );
+      });
+    });
+    t(defaultContent.projects);
+    console.log(`Inserted ${defaultContent.projects.length} projects`);
+  }
+
+  // INQUIRIES - not usually seeded
+  console.log('Default data initialization completed.');
 }
 
-// Run migration
-async function runMigration() {
-  const migrator = new MigrationScript();
+function main() {
+  console.log('Migration started');
+
+  const defaultContent = loadDefaultContent();
+
+  const db = openDatabase();
 
   try {
-    await migrator.migrateFromLocalStorage();
-    console.log('Migration script completed successfully!');
-  } catch (error) {
-    console.error('Migration failed:', error);
-    process.exit(1);
+    // Apply migrations
+    applyMigrations(db);
+
+    // Initialize default data if needed
+    initializeDefaultData(db, defaultContent);
+
+    console.log('Migration finished successfully');
+  } catch (err) {
+    console.error('Migration failed:', err);
+    process.exitCode = 1;
   } finally {
-    migrator.close();
+    try { db.close(); } catch (e) { /* ignore */ }
   }
 }
 
 if (require.main === module) {
-  runMigration();
+  main();
 }
 
-module.exports = MigrationScript;
+module.exports = {
+  openDatabase,
+  applyMigrations,
+  initializeDefaultData,
+  loadDefaultContent
+};
