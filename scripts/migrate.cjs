@@ -113,7 +113,8 @@ const MIGRATIONS = [
           id TEXT PRIMARY KEY,
           title TEXT,
           description TEXT,
-          icon TEXT
+          icon TEXT,
+          sortOrder INTEGER DEFAULT 0
         );
       `);
 
@@ -193,6 +194,12 @@ const MIGRATIONS = [
       if (!hasColumn(db, 'services', 'featured')) {
         db.exec(`ALTER TABLE services ADD COLUMN featured INTEGER DEFAULT 0;`);
         console.log('Added column services.featured');
+      }
+
+      // Ensure client_segments.sortOrder exists
+      if (!hasColumn(db, 'client_segments', 'sortOrder')) {
+        db.exec(`ALTER TABLE client_segments ADD COLUMN sortOrder INTEGER DEFAULT 0;`);
+        console.log('Added column client_segments.sortOrder');
       }
     }
   }
@@ -347,16 +354,17 @@ function initializeDefaultData(db, defaultContent) {
   const clientCount = db.prepare('SELECT COUNT(*) as c FROM client_segments').get().c;
   if (clientCount === 0 && Array.isArray(defaultContent.clientSegments)) {
     const insert = db.prepare(`
-      INSERT INTO client_segments (id, title, description, icon)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO client_segments (id, title, description, icon, sortOrder)
+      VALUES (?, ?, ?, ?, ?)
     `);
     const t = db.transaction((list) => {
-      list.forEach(item => {
+      list.forEach((item, index) => {
         insert.run(
           `client-${item.id || Math.random().toString(36).slice(2,8)}`,
           item.title || null,
           item.description || null,
-          item.icon || null
+          item.icon || null,
+          index
         );
       });
     });

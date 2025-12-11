@@ -62,6 +62,7 @@ export interface ClientSegmentData {
   title: string;
   description: string;
   icon?: string;
+  sortOrder: number;
   updatedAt: string;
 }
 

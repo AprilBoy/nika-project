@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminNavigation } from '@/components/admin-navigation';
 import { useDataUpdate } from '@/components/data-update-context';
-import { Edit, Plus, Trash2 } from 'lucide-react';
+import { Edit, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import {
   Users,
   Building,
@@ -45,6 +45,7 @@ interface ClientSegment {
   title: string;
   description: string;
   icon?: string;
+  sortOrder: number;
 }
 
 // Импорт базы данных
@@ -102,12 +103,13 @@ const ClientsAdmin = () => {
     const loadClients = async () => {
       try {
         const clientsData = await db.getClientSegments();
-        const formattedClients: ClientSegment[] = clientsData.map(c => ({
+        const formattedClients: ClientSegment[] = clientsData.map((c, index) => ({
           id: parseId(c.id),
           title: c.title,
           description: c.description,
-          icon: c.icon
-        }));
+          icon: c.icon,
+          sortOrder: (c as any).sortOrder ?? index
+        })).sort((a, b) => a.sortOrder - b.sortOrder);
         setClients(formattedClients);
       } catch (error) {
         console.error('Error loading client segments:', error);
@@ -148,17 +150,21 @@ const ClientsAdmin = () => {
     setSaving(true);
     try {
       if (editingId) {
+        const editingClient = clients.find(c => `client-${c.id}` === editingId);
         const updatedClient = await db.updateClientSegment(editingId, {
           title: data.title,
           description: data.description,
-          icon: data.icon === 'none' ? undefined : data.icon
+          icon: data.icon === 'none' ? undefined : data.icon,
+          sortOrder: editingClient?.sortOrder ?? 0
         });
 
+        const currentClient = clients.find(c => c.id === parseId(updatedClient.id));
         const formattedClient: ClientSegment = {
           id: parseId(updatedClient.id),
           title: updatedClient.title,
           description: updatedClient.description,
-          icon: updatedClient.icon
+          icon: updatedClient.icon,
+          sortOrder: currentClient?.sortOrder ?? 0
         };
 
         setClients(clients.map(c =>
@@ -168,17 +174,19 @@ const ClientsAdmin = () => {
         const newClient = await db.createClientSegment({
           title: data.title,
           description: data.description,
-          icon: data.icon === 'none' ? undefined : data.icon
+          icon: data.icon === 'none' ? undefined : data.icon,
+          sortOrder: clients.length
         });
 
         const formattedClient: ClientSegment = {
           id: parseId(newClient.id),
           title: newClient.title,
           description: newClient.description,
-          icon: newClient.icon
+          icon: newClient.icon,
+          sortOrder: clients.length
         };
 
-        setClients([...clients, formattedClient]);
+        setClients([...clients, formattedClient].sort((a, b) => a.sortOrder - b.sortOrder));
       }
 
       setIsDialogOpen(false);
@@ -200,6 +208,60 @@ const ClientsAdmin = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleMoveUp = async (client: ClientSegment) => {
+    if (client.sortOrder === 0) return; // Уже первый элемент
+
+    const updatedClients = clients.map(c => {
+      if (c.id === client.id) {
+        return { ...c, sortOrder: c.sortOrder - 1 };
+      } else if (c.sortOrder === client.sortOrder - 1) {
+        return { ...c, sortOrder: c.sortOrder + 1 };
+      }
+      return c;
+    }).sort((a, b) => a.sortOrder - b.sortOrder);
+
+    setClients(updatedClients);
+    await saveOrder(updatedClients);
+  };
+
+  const handleMoveDown = async (client: ClientSegment) => {
+    if (client.sortOrder === clients.length - 1) return; // Уже последний элемент
+
+    const updatedClients = clients.map(c => {
+      if (c.id === client.id) {
+        return { ...c, sortOrder: c.sortOrder + 1 };
+      } else if (c.sortOrder === client.sortOrder + 1) {
+        return { ...c, sortOrder: c.sortOrder - 1 };
+      }
+      return c;
+    }).sort((a, b) => a.sortOrder - b.sortOrder);
+
+    setClients(updatedClients);
+    await saveOrder(updatedClients);
+  };
+
+  const saveOrder = async (clientsToSave: ClientSegment[]) => {
+    try {
+      // Сохраняем порядок для всех клиентов
+      for (const client of clientsToSave) {
+        await db.updateClientSegment(`client-${client.id}`, {
+          title: client.title,
+          description: client.description,
+          icon: client.icon,
+          sortOrder: client.sortOrder
+        });
+      }
+      notifyDataUpdate('clients');
+    } catch (error) {
+      console.error('Error saving order:', error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить порядок сегментов",
+        variant: "destructive",
+      });
     }
   };
 
@@ -271,14 +333,37 @@ const ClientsAdmin = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-16">Порядок</TableHead>
                   <TableHead>Название сегмента</TableHead>
                   <TableHead>Описание</TableHead>
-                  <TableHead className="w-32">Действия</TableHead>
+                  <TableHead className="w-40">Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {clients.map((client) => (
                   <TableRow key={client.id}>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleMoveUp(client)}
+                          disabled={client.sortOrder === 0}
+                          className="h-6 w-6 p-0"
+                        >
+                          <ChevronUp className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleMoveDown(client)}
+                          disabled={client.sortOrder === clients.length - 1}
+                          className="h-6 w-6 p-0"
+                        >
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
                     <TableCell className="font-medium">{client.title}</TableCell>
                     <TableCell className="max-w-md truncate">{client.description}</TableCell>
                     <TableCell>
