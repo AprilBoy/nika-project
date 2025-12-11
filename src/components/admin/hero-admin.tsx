@@ -23,7 +23,7 @@ const HeroAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState([]);
+  const [generatedImages, setGeneratedImages] = useState<{path: string; url: string; filename: string}[]>([]);
   const { toast } = useToast();
   const { notifyDataUpdate } = useDataUpdate();
 

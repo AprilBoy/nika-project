@@ -23,7 +23,7 @@ const AboutAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState([]);
+  const [generatedImages, setGeneratedImages] = useState<{path: string; url: string; filename: string}[]>([]);
   const { toast } = useToast();
   const { notifyDataUpdate } = useDataUpdate();
 
@@ -126,10 +126,6 @@ const AboutAdmin = () => {
       // Уведомляем о обновлении данных
       notifyDataUpdate('about');
 
-      toast({
-        title: "Изображение загружено и сохранено",
-        description: "Изображение раздела 'Обо мне' успешно обновлено и сохранено",
-      });
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({

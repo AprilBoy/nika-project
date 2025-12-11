@@ -32,7 +32,7 @@ export function ServicesSection({ servicesData, scrollToSection }: ServicesSecti
   };
 
   return (
-    <section id="services" className="py-24 md:py-32 relative">
+    <section id="services" className="pt-24 md:pt-32 relative">
       <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
         <div className="text-center mb-16 space-y-4">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold" data-testid="text-services-title">
