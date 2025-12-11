@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import AppDatabase from './src/database.js';
+import AppDatabase from './src/database.cjs';
 const db = new AppDatabase();
 import dotenv from 'dotenv';
 dotenv.config();

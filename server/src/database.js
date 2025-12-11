@@ -243,13 +243,14 @@ class AppDatabase {
     const aboutExists = this.db.prepare('SELECT id FROM about WHERE id = 1').get();
     if (!aboutExists) {
       const insertAbout = this.db.prepare(`
-        INSERT INTO about (id, title, subtitle, highlights)
-        VALUES (1, ?, ?, ?)
+        INSERT INTO about (id, title, subtitle, highlights, image)
+        VALUES (1, ?, ?, ?, ?)
       `);
       insertAbout.run(
         defaultContent.aboutContent.title,
         defaultContent.aboutContent.subtitle,
-        JSON.stringify(defaultContent.aboutContent.highlights)
+        JSON.stringify(defaultContent.aboutContent.highlights),
+        defaultContent.heroContent.image
       );
     }
 
