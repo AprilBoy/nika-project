@@ -236,7 +236,6 @@ main() {
     check_docker
     check_ports
     create_backup
-    build_frontend
     run_migrations
     deploy_docker
     health_check
