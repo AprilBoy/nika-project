@@ -17,6 +17,7 @@ export interface AboutData {
   title: string;
   subtitle: string;
   highlights: string[];
+  image?: string;
 }
 
 export interface ProcessStep {
@@ -93,7 +94,8 @@ export const useDatabaseData = () => {
       "Руковожу онлайн-школами, проектами и продуктами более 5 лет",
       "Наибольшее кол-во подчиненных в команде - 50 человек",
       "Обучалась у всех лидеров и топов рынка (Гребенюк, Тимочко, Дымшаков и другие)"
-    ]
+    ],
+    image: "/attached_assets/generated_images/Nika_about_photo_a0be6d9d.png"
   });
 
   const [processData, setProcessData] = useState<ProcessStep[]>([]);

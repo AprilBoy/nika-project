@@ -45,6 +45,7 @@ class AppDatabase {
         title TEXT NOT NULL,
         subtitle TEXT NOT NULL,
         highlights TEXT NOT NULL, -- JSON array
+        image TEXT,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -201,13 +202,14 @@ class AppDatabase {
     const aboutExists = this.db.prepare('SELECT id FROM about WHERE id = 1').get();
     if (!aboutExists) {
       const insertAbout = this.db.prepare(`
-        INSERT INTO about (id, title, subtitle, highlights)
-        VALUES (1, ?, ?, ?)
+        INSERT INTO about (id, title, subtitle, highlights, image)
+        VALUES (1, ?, ?, ?, ?)
       `);
       insertAbout.run(
         defaultContent.aboutContent.title,
         defaultContent.aboutContent.subtitle,
-        JSON.stringify(defaultContent.aboutContent.highlights)
+        JSON.stringify(defaultContent.aboutContent.highlights),
+        defaultContent.aboutContent.image || null
       );
     }
 
@@ -350,6 +352,7 @@ class AppDatabase {
         title: row.title,
         subtitle: row.subtitle,
         highlights: JSON.parse(row.highlights),
+        image: row.image,
         updatedAt: row.updatedAt
       };
     }
@@ -362,6 +365,7 @@ class AppDatabase {
         title = ?,
         subtitle = ?,
         highlights = ?,
+        image = ?,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = 1
     `);
@@ -369,7 +373,8 @@ class AppDatabase {
     update.run(
       data.title,
       data.subtitle,
-      JSON.stringify(data.highlights)
+      JSON.stringify(data.highlights),
+      data.image || null
     );
 
     return this.getAbout();
@@ -712,6 +717,9 @@ class AppDatabase {
 
   createProject(data) {
     const id = `project-${Date.now()}`;
+    const validStatuses = ['new', 'in-progress', 'completed', 'planned', 'cancelled', 'none'];
+    const status = validStatuses.includes(data.status) ? data.status : 'new';
+
     const insert = this.db.prepare(`
       INSERT INTO projects (id, title, description, category, imageUrl, link, featured, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -725,7 +733,7 @@ class AppDatabase {
       data.imageUrl || null,
       data.link || null,
       data.featured ? 1 : 0,
-      data.status || 'new'
+      status
     );
 
     return this.getProject(id);

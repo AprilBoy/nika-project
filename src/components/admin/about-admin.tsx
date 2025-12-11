@@ -16,11 +16,28 @@ import { aboutContent } from '@/data/content';
 import { db } from '@/lib/database';
 
 const AboutAdmin = () => {
-  const [formData, setFormData] = useState(aboutContent);
+  const [formData, setFormData] = useState({
+    ...aboutContent,
+    image: (aboutContent as any).image || ''
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [generatedImages, setGeneratedImages] = useState([]);
   const { toast } = useToast();
   const { notifyDataUpdate } = useDataUpdate();
+
+  const loadGeneratedImages = async () => {
+    try {
+      const response = await fetch('/api/generated-images');
+      if (response.ok) {
+        const images = await response.json();
+        setGeneratedImages(images);
+      }
+    } catch (error) {
+      console.error('Error loading generated images:', error);
+    }
+  };
 
   useEffect(() => {
     const loadAboutData = async () => {
@@ -30,7 +47,8 @@ const AboutAdmin = () => {
           setFormData({
             title: aboutData.title,
             subtitle: aboutData.subtitle,
-            highlights: aboutData.highlights
+            highlights: aboutData.highlights,
+            image: aboutData.image || ''
           });
         }
       } catch (error) {
@@ -46,6 +64,7 @@ const AboutAdmin = () => {
     };
 
     loadAboutData();
+    loadGeneratedImages();
   }, [toast]);
 
   const handleSave = async () => {
@@ -54,7 +73,8 @@ const AboutAdmin = () => {
       await db.updateAbout({
         title: formData.title,
         subtitle: formData.subtitle,
-        highlights: formData.highlights
+        highlights: formData.highlights,
+        image: formData.image
       });
       // Уведомляем о обновлении данных
       notifyDataUpdate('about');
@@ -72,6 +92,58 @@ const AboutAdmin = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size before upload (considering base64 encoding increases size by ~33%)
+    const maxFileSize = 5 * 1024 * 1024; // 5MB original file size limit
+    if (file.size > maxFileSize) {
+      toast({
+        title: "Файл слишком большой",
+        description: "Максимальный размер файла - 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const result = await db.uploadAboutImage(file);
+      const newFormData = { ...formData, image: result.imagePath };
+      setFormData(newFormData);
+
+      // Automatically save the about data after image upload
+      await db.updateAbout({
+        title: newFormData.title,
+        subtitle: newFormData.subtitle,
+        highlights: newFormData.highlights,
+        image: newFormData.image
+      });
+
+      // Уведомляем о обновлении данных
+      notifyDataUpdate('about');
+
+      toast({
+        title: "Изображение загружено и сохранено",
+        description: "Изображение раздела 'Обо мне' успешно обновлено и сохранено",
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить изображение",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleSelectGeneratedImage = (imagePath: string) => {
+    setFormData({ ...formData, image: imagePath });
   };
 
   const updateHighlight = (index: number, value: string) => {
@@ -152,6 +224,71 @@ const AboutAdmin = () => {
                   placeholder="Введите подзаголовок"
                   rows={3}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Изображение раздела "Обо мне"</Label>
+                <div className="space-y-4">
+                  {formData.image && (
+                    <div className="relative w-48 h-32 rounded-lg overflow-hidden border">
+                      <img
+                        src={formData.image}
+                        alt="Текущее изображение раздела 'Обо мне'"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      className="flex-1"
+                    />
+                    {uploadingImage && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Выберите изображение для раздела "Обо мне". Рекомендуемый размер: 800x600px. Максимальный размер файла: 5MB.
+                  </p>
+                </div>
+
+                {generatedImages.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Или выберите из галереи изображений:</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/20">
+                      {generatedImages.map((image, index) => (
+                        <div
+                          key={index}
+                          className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                            formData.image === image.path ? 'border-primary ring-2 ring-primary/20' : 'border-muted'
+                          }`}
+                          onClick={() => handleSelectGeneratedImage(image.path)}
+                        >
+                          <img
+                            src={image.url}
+                            alt={image.filename}
+                            className="w-full h-24 object-cover"
+                          />
+                          {formData.image === image.path && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <div className="bg-primary text-primary-foreground rounded-full p-1">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Нажмите на изображение, чтобы выбрать его для раздела "Обо мне"
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">

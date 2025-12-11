@@ -20,6 +20,7 @@ export interface AboutData {
   title: string;
   subtitle: string;
   highlights: string[];
+  image?: string;
   updatedAt: string;
 }
 
@@ -176,6 +177,33 @@ class DatabaseAPI {
     return this.apiCall('/api/about', {
       method: 'PUT',
       body: JSON.stringify(data),
+    });
+  }
+
+  async uploadAboutImage(file: File): Promise<{ imagePath: string }> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = reader.result as string;
+          const response = await this.apiCall('/api/upload/about-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              image: base64,
+              filename: file.name,
+              mimeType: file.type,
+            }),
+          });
+          resolve(response);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
     });
   }
 

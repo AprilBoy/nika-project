@@ -95,6 +95,48 @@ app.post('/api/upload/hero-image', async (req, res) => {
     }
 });
 
+// Image upload endpoint for about section
+app.post('/api/upload/about-image', async (req, res) => {
+    try {
+        const { image, filename, mimeType } = req.body;
+
+        if (!image || !filename || !mimeType) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Check if it's a valid image type
+        if (!mimeType.startsWith('image/')) {
+            return res.status(400).json({ error: 'Only image files are allowed' });
+        }
+
+        // Extract base64 data
+        const base64Data = image.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+
+        // Check file size (5MB limit)
+        if (buffer.length > 5 * 1024 * 1024) {
+            return res.status(400).json({ error: 'File too large. Maximum size is 5MB' });
+        }
+
+        // Generate unique filename
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const extension = path.extname(filename);
+        const finalFilename = `about_image_${uniqueSuffix}${extension}`;
+
+        // Save file
+        const filePath = path.join(projectRoot, 'attached_assets/generated_images', finalFilename);
+        fs.writeFileSync(filePath, buffer);
+
+        // Return the path to the uploaded image
+        const imagePath = `/attached_assets/generated_images/${finalFilename}`;
+        res.json({ imagePath });
+    }
+    catch (error) {
+        console.error('Error uploading about image:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // API endpoint to list images in generated_images folder
 app.get('/api/generated-images', async (req, res) => {
     try {

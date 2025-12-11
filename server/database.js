@@ -41,7 +41,7 @@ class Database {
   }
 
   updateProcessStep(id, data) {
-    const index = this.data.processSteps.findIndex(step => step.id === parseInt(id.split('-')[1]));
+    const index = this.data.processSteps.findIndex(step => step.id === id);
     if (index !== -1) {
       this.data.processSteps[index] = { ...this.data.processSteps[index], ...data };
       return this.data.processSteps[index];
@@ -66,7 +66,7 @@ class Database {
   }
 
   updateClientSegment(id, data) {
-    const index = this.data.clientSegments.findIndex(segment => segment.id === parseInt(id.split('-')[1]));
+    const index = this.data.clientSegments.findIndex(segment => segment.id === id);
     if (index !== -1) {
       this.data.clientSegments[index] = { ...this.data.clientSegments[index], ...data };
       return this.data.clientSegments[index];
@@ -91,7 +91,7 @@ class Database {
   }
 
   updateService(id, data) {
-    const index = this.data.services.findIndex(service => service.id === parseInt(id.split('-')[1]));
+    const index = this.data.services.findIndex(service => service.id === id);
     if (index !== -1) {
       this.data.services[index] = { ...this.data.services[index], ...data };
       return this.data.services[index];
@@ -116,7 +116,7 @@ class Database {
   }
 
   updateTestimonial(id, data) {
-    const index = this.data.testimonials.findIndex(testimonial => testimonial.id === parseInt(id.split('-')[1]));
+    const index = this.data.testimonials.findIndex(testimonial => testimonial.id === id);
     if (index !== -1) {
       this.data.testimonials[index] = { ...this.data.testimonials[index], ...data };
       return this.data.testimonials[index];

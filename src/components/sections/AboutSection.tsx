@@ -1,11 +1,11 @@
 import { CheckCircle2 } from "lucide-react";
-import aboutImage from "@assets/generated_images/Nika_about_photo_a0be6d9d.png";
 
 interface AboutSectionProps {
   aboutData: {
     title: string;
     subtitle: string;
     highlights: string[];
+    image?: string;
   };
 }
 
@@ -34,7 +34,7 @@ export function AboutSection({ aboutData }: AboutSectionProps) {
 
           <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-xl">
             <img
-              src={aboutImage}
+              src={aboutData.image}
               alt="Ника Шихлинская в работе"
               className="w-full h-full object-cover"
             />
