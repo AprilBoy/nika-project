@@ -163,6 +163,7 @@ class MigrationScript {
         title = ?,
         subtitle = ?,
         highlights = ?,
+        image = ?,
         updatedAt = ?
       WHERE id = 1
     `);
@@ -171,6 +172,7 @@ class MigrationScript {
       aboutData.title,
       aboutData.subtitle,
       JSON.stringify(aboutData.highlights),
+      aboutData.image || null,
       new Date().toISOString()
     );
 

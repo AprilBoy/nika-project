@@ -366,7 +366,8 @@ class MigrationScript {
         title = ?,
         subtitle = ?,
         highlights = ?,
-        updatedAt = ?
+        updatedAt = ?,
+        image = ?
       WHERE id = 1
     `);
 
@@ -374,6 +375,7 @@ class MigrationScript {
       defaultContent.aboutContent.title,
       defaultContent.aboutContent.subtitle,
       JSON.stringify(defaultContent.aboutContent.highlights),
+      defaultContent.aboutContent.image || null,
       new Date().toISOString()
     );
 
