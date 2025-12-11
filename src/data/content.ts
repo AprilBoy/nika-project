@@ -6,7 +6,7 @@ export const heroContent = {
   primaryCTA: "Связаться",
   secondaryCTA: "Онлайн-консультация",
   telegramLink: "https://t.me/nikashikh",
-  image: "/attached_assets/generated_images/IMG_6236_no_bg.png",
+  image: "/attached_assets/generated_images/IMG_6236.png",
 };
 
 export const aboutContent = {
@@ -18,7 +18,7 @@ export const aboutContent = {
     "Наибольшее кол-во подчиненных в команде - 50 человек",
     "Обучалась у всех лидеров и топов рынка (Гребенюк, Тимочко, Дымшаков и другие)",
   ],
-  image: "/attached_assets/generated_images/Nika_hero_portrait_5a7bc603.png",
+  image: "/attached_assets/generated_images/IMG_6310.png",
 };
 
 export const processSteps = [

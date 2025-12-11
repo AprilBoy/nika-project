@@ -21,7 +21,6 @@ const defaultContent = {
       "Наибольшее кол-во подчиненных в команде - 50 человек",
       "Обучалась у всех лидеров и топов рынка (Гребенюк, Тимочко, Дымшаков и другие)",
     ],
-    image: "/attached_assets/generated_images/Nika_about_photo_a0be6d9d.png",
   },
 
   processSteps: [
