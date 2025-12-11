@@ -45,6 +45,7 @@ class AppDatabase {
         title TEXT NOT NULL,
         subtitle TEXT NOT NULL,
         highlights TEXT NOT NULL, -- JSON array
+        image TEXT,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -209,7 +210,8 @@ class AppDatabase {
             "Руковожу онлайн-школами, проектами и продуктами более 5 лет",
             "Наибольшее кол-во подчиненных в команде - 50 человек",
             "Обучалась у всех лидеров и топов рынка (Гребенюк, Тимочко, Дымшаков и другие)"
-          ]
+          ],
+          image: "/attached_assets/generated_images/IMG_6310_no_bg.png"
         },
         processSteps: [],
         clientSegments: [],
