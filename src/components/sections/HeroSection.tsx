@@ -67,6 +67,10 @@ export function HeroSection({ heroData, scrollToSection }: HeroSectionProps) {
               src={heroData.image}
               alt="Ника Шихлинская - Системный операционный партнер"
               className="w-full h-full object-cover"
+              style={{
+                maskImage: 'linear-gradient(to bottom, rgba(34, 197, 94, 0.9) 50%, transparent 95%)',
+                WebkitMaskImage: 'linear-gradient(to bottom, rgba(34, 197, 94, 0.9) 50%, transparent 95%)'
+              }}
             />
           </div>
         </div>

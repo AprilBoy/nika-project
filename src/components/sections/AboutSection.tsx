@@ -28,6 +28,10 @@ export function AboutSection({ aboutData }: AboutSectionProps) {
               src={aboutData.image}
               alt="Ника Шихлинская в работе"
               className="w-full h-full object-cover object-[25%_100%]"
+              style={{
+                maskImage: 'linear-gradient(to bottom, rgba(34, 197, 94, 0.9) 50%, transparent 95%)',
+                WebkitMaskImage: 'linear-gradient(to bottom, rgba(34, 197, 94, 0.9) 50%, transparent 95%)'
+              }}
             />
           </div>
           <div className="space-y-6">
