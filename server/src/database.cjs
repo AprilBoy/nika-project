@@ -161,7 +161,8 @@ class AppDatabase {
           description: "Превращаю хаос в работающие процессы | Запускаю проекты, строю команды, чиню что сломано | Позабочусь о ваших интересах, как о своих",
           primaryCTA: "Связаться",
           secondaryCTA: "Онлайн-консультация",
-          telegramLink: "https://t.me/nikashikh"
+          telegramLink: "https://t.me/nikashikh",
+          image: "/attached_assets/generated_images/IMG_6236.png"
         },
         aboutContent: {
           title: "Кто я?",
@@ -171,7 +172,8 @@ class AppDatabase {
             "Руковожу онлайн-школами, проектами и продуктами более 5 лет",
             "Наибольшее кол-во подчиненных в команде - 50 человек",
             "Обучалась у всех лидеров и топов рынка (Гребенюк, Тимочко, Дымшаков и другие)"
-          ]
+          ],
+          image: "/attached_assets/generated_images/IMG_6310.png"
         },
         processSteps: [],
         clientSegments: [],
@@ -184,8 +186,8 @@ class AppDatabase {
     const heroExists = this.db.prepare('SELECT id FROM hero WHERE id = 1').get();
     if (!heroExists) {
       const insertHero = this.db.prepare(`
-        INSERT INTO hero (id, badge, title, subtitle, description, primaryCTA, secondaryCTA, telegramLink)
-        VALUES (1, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO hero (id, badge, title, subtitle, description, primaryCTA, secondaryCTA, telegramLink, image)
+        VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       insertHero.run(
         defaultContent.heroContent.badge,
@@ -194,7 +196,8 @@ class AppDatabase {
         defaultContent.heroContent.description,
         defaultContent.heroContent.primaryCTA,
         defaultContent.heroContent.secondaryCTA,
-        defaultContent.heroContent.telegramLink
+        defaultContent.heroContent.telegramLink,
+        defaultContent.heroContent.image
       );
     }
 
@@ -209,7 +212,7 @@ class AppDatabase {
         defaultContent.aboutContent.title,
         defaultContent.aboutContent.subtitle,
         JSON.stringify(defaultContent.aboutContent.highlights),
-        defaultContent.aboutContent.image || null
+        defaultContent.aboutContent.image
       );
     }
 
@@ -353,7 +356,7 @@ class AppDatabase {
         subtitle: row.subtitle,
         highlights: JSON.parse(row.highlights),
         image: row.image,
-        updatedAt: row.updatedAt
+        updatedAt: row.updatedAt,
       };
     }
     return null;
