@@ -4,6 +4,16 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import AppDatabase from './src/database.cjs';
+console.log('AppDatabase imported:', typeof AppDatabase);
+
+let db;
+try {
+  db = new AppDatabase();
+  console.log('Database initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize database:', error);
+  process.exit(1);
+}
 import dotenv from 'dotenv';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
@@ -438,23 +448,6 @@ app.use((req, res, next) => {
     res.sendFile(path.join(projectRoot, 'dist/index.html'));
 });
 // Start server
-const server = app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
-    console.log('Server is listening and ready to accept connections...');
 });
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
-    process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    process.exit(1);
-});
-
-// Keep the process alive
-setInterval(() => {
-    // Keep alive
-}, 1000);

@@ -5,20 +5,51 @@ const fs = require('fs');
 class AppDatabase {
   constructor() {
     const dbPath = path.join(__dirname, '../../data/app.db');
+    console.log('Database path:', dbPath);
 
     // Ensure data directory exists
     const dataDir = path.dirname(dbPath);
+    console.log('Data directory:', dataDir);
+    console.log('Data directory exists:', fs.existsSync(dataDir));
+
     if (!fs.existsSync(dataDir)) {
+      console.log('Creating data directory...');
       fs.mkdirSync(dataDir, { recursive: true });
     }
 
-    this.db = new Database(dbPath);
+    console.log('Initializing database...');
+    try {
+      this.db = new Database(dbPath);
+      console.log('Database initialized successfully');
+    } catch (error) {
+      console.error('Failed to create database:', error);
+      throw error;
+    }
 
-    // Enable WAL mode for better concurrency
-    this.db.pragma('journal_mode = WAL');
+    try {
+      // Enable WAL mode for better concurrency
+      this.db.pragma('journal_mode = WAL');
+      console.log('WAL mode enabled');
+    } catch (error) {
+      console.error('Failed to enable WAL mode:', error);
+      throw error;
+    }
 
-    this.initTables();
-    this.initData();
+    try {
+      this.initTables();
+      console.log('Tables initialized');
+    } catch (error) {
+      console.error('Failed to initialize tables:', error);
+      throw error;
+    }
+
+    try {
+      this.initData();
+      console.log('Data initialized');
+    } catch (error) {
+      console.error('Failed to initialize data:', error);
+      throw error;
+    }
   }
 
   initTables() {
