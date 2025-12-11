@@ -3,17 +3,8 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import AppDatabase from './src/database.cjs';
-console.log('AppDatabase imported:', typeof AppDatabase);
-
-let db;
-try {
-  db = new AppDatabase();
-  console.log('Database initialized successfully');
-} catch (error) {
-  console.error('Failed to initialize database:', error);
-  process.exit(1);
-}
+import AppDatabase from './src/database.js';
+const db = new AppDatabase();
 import dotenv from 'dotenv';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
