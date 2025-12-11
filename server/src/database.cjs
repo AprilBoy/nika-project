@@ -70,6 +70,7 @@ class AppDatabase {
         title TEXT NOT NULL,
         description TEXT NOT NULL,
         icon TEXT,
+        sortOrder INTEGER DEFAULT 0,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -240,16 +241,17 @@ class AppDatabase {
     const clientCount = this.db.prepare('SELECT COUNT(*) as count FROM client_segments').get();
     if (clientCount.count === 0 && defaultContent.clientSegments.length > 0) {
       const insertClient = this.db.prepare(`
-        INSERT INTO client_segments (id, title, description, icon)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO client_segments (id, title, description, icon, sortOrder)
+        VALUES (?, ?, ?, ?, ?)
       `);
 
-      defaultContent.clientSegments.forEach(segment => {
+      defaultContent.clientSegments.forEach((segment, index) => {
         insertClient.run(
           `client-${segment.id}`,
           segment.title,
           segment.description,
-          segment.icon || null
+          segment.icon || null,
+          segment.sortOrder || index
         );
       });
     }
@@ -469,28 +471,33 @@ class AppDatabase {
 
   // Client segments methods
   getClientSegments() {
-    const rows = this.db.prepare('SELECT * FROM client_segments ORDER BY id').all();
-    return rows.map(row => ({
+    const rows = this.db.prepare('SELECT * FROM client_segments ORDER BY sortOrder').all();
+    console.log('Database rows:', rows); // Debug log
+    const result = rows.map(row => ({
       id: row.id,
       title: row.title,
       description: row.description,
       icon: row.icon,
+      sortOrder: row.sortOrder,
       updatedAt: row.updatedAt
     }));
+    console.log('Mapped result:', result); // Debug log
+    return result;
   }
 
   createClientSegment(data) {
     const id = `client-${Date.now()}`;
     const insert = this.db.prepare(`
-      INSERT INTO client_segments (id, title, description, icon)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO client_segments (id, title, description, icon, sortOrder)
+      VALUES (?, ?, ?, ?, ?)
     `);
 
     insert.run(
       id,
       data.title,
       data.description,
-      data.icon || null
+      data.icon || null,
+      data.sortOrder || 0
     );
 
     return this.getClientSegment(id);
@@ -504,6 +511,7 @@ class AppDatabase {
         title: row.title,
         description: row.description,
         icon: row.icon,
+        sortOrder: row.sortOrder,
         updatedAt: row.updatedAt
       };
     }
@@ -516,6 +524,7 @@ class AppDatabase {
         title = ?,
         description = ?,
         icon = ?,
+        sortOrder = ?,
         updatedAt = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
@@ -524,6 +533,7 @@ class AppDatabase {
       data.title,
       data.description,
       data.icon || null,
+      data.sortOrder || 0,
       id
     );
 
