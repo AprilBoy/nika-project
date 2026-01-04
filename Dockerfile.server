@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем только production зависимости
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Копируем серверные файлы
 COPY server/ ./server/
