@@ -190,10 +190,24 @@ health_check() {
         all_healthy=false
     fi
 
-    # Backend API check
-    if ! check_service "http://localhost:3001/api/hero" "Backend API"; then
-        all_healthy=false
-    fi
+    # Backend API checks - test all main endpoints
+    local api_endpoints=(
+        "api/hero:Hero Data"
+        "api/about:About Section"
+        "api/process-steps:Process Steps"
+        "api/client-segments:Client Segments"
+        "api/services:Services"
+        "api/testimonials:Testimonials"
+        "api/projects:Projects"
+        "api/inquiries:Inquiries"
+    )
+
+    for endpoint_info in "${api_endpoints[@]}"; do
+        IFS=':' read -r endpoint name <<< "$endpoint_info"
+        if ! check_service "http://localhost:3001/$endpoint" "$name API"; then
+            all_healthy=false
+        fi
+    done
 
     if [ "$all_healthy" = true ]; then
         print_success "All services are healthy"

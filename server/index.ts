@@ -112,11 +112,17 @@ app.delete('/api/process-steps/:id', async (req, res) => {
 
 app.get('/api/client-segments', async (req, res) => {
   try {
+    console.log('Fetching client segments...');
     const segments = await db.getClientSegments();
+    console.log(`Successfully retrieved ${segments.length} client segments`);
     res.json(segments);
   } catch (error) {
     console.error('Error fetching client segments:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Database error'
+    });
   }
 });
 
