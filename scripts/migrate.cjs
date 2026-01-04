@@ -7,7 +7,7 @@
  * - uses better-sqlite3 synchronously
  * - creates missing tables/columns
  * - simple migrations table for idempotence
- * - reads default content from ../src/data/default-content.json (optional)
+ * - reads default content from ../src/data/content.json (optional)
  */
 
 const fs = require('fs');
@@ -15,7 +15,7 @@ const path = require('path');
 const Database = require('better-sqlite3');
 
 const DB_PATH = path.join(__dirname, '../data/app.db');
-const DEFAULT_CONTENT_PATH = path.join(__dirname, '../src/data/default-content.json');
+const DEFAULT_CONTENT_PATH = path.join(__dirname, '../src/data/content.json');
 
 function loadDefaultContent() {
   if (!fs.existsSync(DEFAULT_CONTENT_PATH)) {
