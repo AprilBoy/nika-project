@@ -112,9 +112,7 @@ app.delete('/api/process-steps/:id', async (req, res) => {
 
 app.get('/api/client-segments', async (req, res) => {
   try {
-    console.log('Fetching client segments...');
     const segments = await db.getClientSegments();
-    console.log(`Successfully retrieved ${segments.length} client segments`);
     res.json(segments);
   } catch (error) {
     console.error('Error fetching client segments:', error);

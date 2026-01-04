@@ -19,12 +19,11 @@ export default function Home() {
     clientData,
     servicesData,
     testimonialsData,
-    projectsData,
     loading
   } = useDatabaseData();
 
   const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: "center"  });
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: "start"  });
   };
 
 
