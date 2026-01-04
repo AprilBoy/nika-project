@@ -9,7 +9,7 @@ set -e
 
 ENVIRONMENT=${1:-production}
 PROJECT_NAME="nika-project"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+TIMESTAMP=$(date +%d.%m.%Y_%H:%M:%S)
 
 echo "🚀 Starting deployment of $PROJECT_NAME to $ENVIRONMENT environment"
 echo "📅 Timestamp: $TIMESTAMP"
@@ -160,7 +160,7 @@ health_check() {
     check_service() {
         local url=$1
         local service_name=$2
-        local max_attempts=10
+        local max_attempts=5
         local attempt=1
 
         while [ $attempt -le $max_attempts ]; do
