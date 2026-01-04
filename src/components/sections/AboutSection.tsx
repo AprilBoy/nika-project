@@ -23,7 +23,7 @@ export function AboutSection({ aboutData }: AboutSectionProps) {
         </div>
 
         <div className="grid md:grid-cols-2 gap-12 lg:gap-16 items-center">
-        <div className="relative h-[500px] md:h-[600px]">
+        <div className="relative h-[500px] md:h-[600px] hidden lg:block">
             <img
               src={aboutData.image}
               alt="Ника Шихлинская в работе"

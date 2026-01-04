@@ -472,7 +472,6 @@ class AppDatabase {
   // Client segments methods
   getClientSegments() {
     const rows = this.db.prepare('SELECT * FROM client_segments ORDER BY sortOrder').all();
-    console.log('Database rows:', rows); // Debug log
     const result = rows.map(row => ({
       id: row.id,
       title: row.title,
@@ -481,7 +480,6 @@ class AppDatabase {
       sortOrder: row.sortOrder,
       updatedAt: row.updatedAt
     }));
-    console.log('Mapped result:', result); // Debug log
     return result;
   }
 
