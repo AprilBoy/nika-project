@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
-import { DataUpdateProvider } from "@/components/data-update-context";
+import { DataUpdateProvider, DataProvider } from "@/components/data-update-context";
 import Home from "@/pages/home";
 import AdminPage from "@/pages/admin";
 import NotFound from "@/pages/not-found";
@@ -23,12 +23,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <DataUpdateProvider>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </ThemeProvider>
+        <DataProvider>
+          <ThemeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </ThemeProvider>
+        </DataProvider>
       </DataUpdateProvider>
     </QueryClientProvider>
   );

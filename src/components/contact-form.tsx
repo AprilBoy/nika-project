@@ -9,9 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useDatabaseData } from '@/hooks/useDatabaseData';
 import { db } from '@/lib/database';
 import { MessageCircle, Send, Loader2 } from 'lucide-react';
+import { Service } from '@/components/data-update-context';
 
 const contactFormSchema = z.object({
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
@@ -24,14 +24,14 @@ const contactFormSchema = z.object({
 type ContactFormData = z.infer<typeof contactFormSchema>;
 
 interface ContactFormProps {
+  servicesData: Service[];
   onSuccess?: () => void;
 }
 
-export const ContactForm: React.FC<ContactFormProps> = ({ onSuccess }) => {
+export const ContactForm: React.FC<ContactFormProps> = ({ servicesData, onSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentServiceType, setCurrentServiceType] = useState<string>('');
   const { toast } = useToast();
-  const { servicesData } = useDatabaseData();
 
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),

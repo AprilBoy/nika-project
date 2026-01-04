@@ -1,5 +1,5 @@
 import { Navigation } from "@/components/navigation";
-import { useDatabaseData } from "@/hooks/useDatabaseData";
+import { useAppData } from "@/components/data-update-context";
 import {
   HeroSection,
   AboutSection,
@@ -20,7 +20,7 @@ export default function Home() {
     servicesData,
     testimonialsData,
     loading
-  } = useDatabaseData();
+  } = useAppData();
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: "start"  });
@@ -42,7 +42,7 @@ export default function Home() {
       <ClientsSection clientData={clientData} />
       <ServicesSection servicesData={servicesData} scrollToSection={scrollToSection} />
       <TestimonialsSection testimonialsData={testimonialsData} />
-      <ContactSection />
+      <ContactSection servicesData={servicesData} />
       <Footer heroData={heroData} servicesData={servicesData} scrollToSection={scrollToSection} />
     </div>
   );

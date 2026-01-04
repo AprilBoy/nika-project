@@ -1,6 +1,11 @@
 import { ContactForm } from "@/components/contact-form";
+import { Service } from "@/components/data-update-context";
 
-export function ContactSection() {
+interface ContactSectionProps {
+  servicesData: Service[];
+}
+
+export function ContactSection({ servicesData }: ContactSectionProps) {
   return (
     <section id="contact" className="pt-24 md:pt-32 relative">
       <div className="container px-6 md:px-12 max-w-8xl mx-auto relative z-10">
@@ -13,7 +18,7 @@ export function ContactSection() {
           </p>
         </div>
 
-        <ContactForm />
+        <ContactForm servicesData={servicesData} />
       </div>
     </section>
   );
