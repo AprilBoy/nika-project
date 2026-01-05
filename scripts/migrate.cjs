@@ -202,7 +202,21 @@ const MIGRATIONS = [
         console.log('Added column client_segments.sortOrder');
       }
     }
+  },
+  {
+  id: '002_add_sort_order_client_segments',
+  up(db) {
+    if (!hasColumn(db, 'client_segments', 'sortOrder')) {
+      db.exec(`
+        ALTER TABLE client_segments
+        ADD COLUMN sortOrder INTEGER DEFAULT 0;
+      `);
+      console.log('Added column client_segments.sortOrder');
+    } else {
+      console.log('Column client_segments.sortOrder already exists');
+    }
   }
+}
 ];
 
 // Apply migrations idempotently
