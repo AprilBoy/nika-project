@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Import default content
-const contentPath = path.join(__dirname, '../src/data/content.ts');
+const contentPath = path.join(__dirname, '../src/data/content.js');
 let defaultContent;
 
 try {

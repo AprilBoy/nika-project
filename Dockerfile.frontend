@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Копируем все исходники фронтенда
 COPY . .
