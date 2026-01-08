@@ -20,6 +20,20 @@ export function Navigation() {
     setIsAdminSessionActiveState(isAdminSessionActive());
   }, []);
 
+  // Block body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     setIsMobileMenuOpen(false);
@@ -116,6 +130,7 @@ export function Navigation() {
               ))}
               {isAdminSessionActiveState && (
                 <Button
+                className="flex"
                   variant="outline"
                   size="lg"
                   onClick={() => {

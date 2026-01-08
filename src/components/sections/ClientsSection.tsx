@@ -49,7 +49,7 @@ export function ClientsSection({ clientData }: ClientsSectionProps) {
               <Card key={segment.id || index} className="p-8 hover-elevate transition-all">
                 <Icon className="h-12 w-12 text-primary mb-6" />
                 <h3 className="text-xl font-semibold mb-4">{segment.title}</h3>
-                <p className="text-base text-muted-foreground leading-relaxed">
+                <p className="text-base text-muted-foreground leading-relaxed hidden md:block">
                   {segment.description}
                 </p>
               </Card>
