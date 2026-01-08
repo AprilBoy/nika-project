@@ -2,6 +2,12 @@ import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 interface Service {
   id: string;
@@ -40,7 +46,8 @@ export function ServicesSection({ servicesData, scrollToSection }: ServicesSecti
           </h2>
         </div>
 
-        <div className="space-y-6">
+        {/* Desktop version - Grid layout for lg and above */}
+        <div className="hidden lg:block space-y-6">
           {servicesData.map((service, index) => {
             const serviceTestIds = ['button-service-consultation', 'button-service-audit', 'button-service-immersion', 'button-service-full-management'];
             return (
@@ -96,6 +103,73 @@ export function ServicesSection({ servicesData, scrollToSection }: ServicesSecti
               </Card>
             );
           })}
+        </div>
+
+        {/* Mobile/Tablet version - Accordion layout for md and below */}
+        <div className="lg:hidden">
+          <Accordion type="single" collapsible className="w-full space-y-6">
+            {servicesData.map((service, index) => {
+              const serviceTestIds = ['button-service-consultation', 'button-service-audit', 'button-service-immersion', 'button-service-full-management'];
+              return (
+                <AccordionItem
+                  key={service.id}
+                  value={`service-${service.id}`}
+                  className="border px-6 py-2 bg-card hover-elevate transition-all rounded-xl"
+                >
+                  <AccordionTrigger className="gap-6 py-8 px-4 hover:no-underline [&>svg]:shrink-0">
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <h3 className="text-xl font-semibold text-left">{service.title}</h3>
+                        {!service.available && (
+                          <Badge variant="secondary" className="shrink-0">Нет мест</Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant={service.available ? "default" : "outline"}
+                        disabled={!service.available}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleServiceClick(service.id);
+                        }}
+                        data-testid={serviceTestIds[index] || `button-service-${index}`}
+                        className="shrink-0"
+                      >
+                        {service.cta}
+                      </Button>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-8">
+                    <div className="space-y-6 pt-4 border-t">
+                      <div className="text-3xl font-bold text-primary">{service.price}</div>
+
+                      {service.examples && (
+                        <div className="space-y-3">
+                          <p className="text-base text-muted-foreground font-medium">Примеры:</p>
+                          <ul className="space-y-2 pl-4">
+                            {service.examples.map((example, idx) => (
+                              <li key={idx} className="text-base text-muted-foreground leading-relaxed">• {example}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {service.description && (
+                        <p className="text-base text-muted-foreground leading-relaxed">
+                          {service.description}
+                        </p>
+                      )}
+
+                      {service.duration && (
+                        <p className="text-base text-muted-foreground">
+                          <span className="font-medium">Время:</span> {service.duration}
+                        </p>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
         </div>
 
         <div className="mt-16 text-center space-y-6">

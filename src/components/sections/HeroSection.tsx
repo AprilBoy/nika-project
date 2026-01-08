@@ -18,7 +18,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ heroData, scrollToSection }: HeroSectionProps) {
   return (
-    <section id="hero" className="relative flex md:items-center sm:items-start justify-center overflow-hidden pt-20">
+    <section id="hero" className="relative flex md:items-center sm:items-start justify-center overflow-hidden pt-20 md:pt-24">
 
       <div className="container relative z-10 px-6 md:px-12 max-w-8xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">

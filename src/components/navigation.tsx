@@ -17,7 +17,6 @@ export function Navigation() {
   }, []);
 
   useEffect(() => {
-    // Проверяем админ-сессию при монтировании компонента
     setIsAdminSessionActiveState(isAdminSessionActive());
   }, []);
 
@@ -43,7 +42,7 @@ export function Navigation() {
         }`}
       >
         <div className="container mx-auto px-6 md:px-12 max-w-7xl">
-          <div className="flex justify-between lg:flex-row md:flex-col sm:flex-row xs:flex-row lg:items-center lg:justify-between md:flex-start md:justify-start md:gap-2 sm:justify-between lg:h-16 md:h-32">
+          <div className="flex justify-between lg:flex-row sm:flex-row xs:flex-row lg:items-center lg:justify-between sm:justify-between h-16">
             {/* Logo */}
             <button
               onClick={() => scrollToSection("hero")}
@@ -54,7 +53,7 @@ export function Navigation() {
             </button>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-6 lg:mt-0 mt-4">
+            <nav className="hidden lg:flex items-center gap-6 lg:mt-0 mt-4">
               {navLinks.map((link) => (
                 <button
                   key={link.section}
@@ -83,7 +82,7 @@ export function Navigation() {
             </nav>
 
             {/* Mobile Controls - всегда справа */}
-            <div className="md:hidden flex items-center gap-2 flex-shrink-0">
+            <div className="lg:hidden flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="p-2 hover-elevate rounded-lg"
@@ -102,7 +101,7 @@ export function Navigation() {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
+        <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-background/95 backdrop-blur-sm pt-20">
             <nav className="container px-6 py-8 space-y-4">
               {navLinks.map((link) => (
@@ -118,7 +117,6 @@ export function Navigation() {
               {isAdminSessionActiveState && (
                 <Button
                   variant="outline"
-                  className="w-full"
                   size="lg"
                   onClick={() => {
                     window.location.href = '/admin/';
@@ -130,7 +128,6 @@ export function Navigation() {
                 </Button>
               )}
               <Button
-                className="w-full"
                 size="lg"
                 onClick={() => {
                   window.open('https://t.me/nikashikh', '_blank');

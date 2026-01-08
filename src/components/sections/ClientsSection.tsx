@@ -42,7 +42,7 @@ export function ClientsSection({ clientData }: ClientsSectionProps) {
           </h2>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8">
           {clientData.map((segment, index) => {
             const Icon = getIconComponent(segment.icon);
             return (
