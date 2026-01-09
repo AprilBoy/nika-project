@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigation } from "@/components/navigation";
 import { useAppData } from "@/components/data-update-context";
 import {
@@ -25,6 +26,17 @@ export default function Home() {
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: "start"  });
   };
+
+  // Handle hash navigation on page load
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // Remove the '#'
+    if (hash) {
+      // Small delay to ensure all sections are rendered
+      setTimeout(() => {
+        scrollToSection(hash);
+      }, 100);
+    }
+  }, [loading]); // Re-run when loading state changes
 
 
   return (

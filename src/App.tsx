@@ -7,12 +7,14 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { DataUpdateProvider, DataProvider } from "@/components/data-update-context";
 import Home from "@/pages/home";
 import AdminPage from "@/pages/admin";
+import TestimonialsPage from "@/pages/testimonials";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home}/>
+      <Route path="/testimonials" component={TestimonialsPage}/>
       <Route path="/admin/*" component={AdminPage}/>
       <Route component={NotFound} />
     </Switch>

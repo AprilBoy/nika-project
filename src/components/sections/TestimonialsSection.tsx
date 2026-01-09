@@ -9,11 +9,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { useState, useEffect } from "react";
-import testimonial1 from "@assets/generated_images/Testimonial_client_1_1f5ec992.png";
-import testimonial2 from "@assets/generated_images/Testimonial_client_2_53a04a52.png";
-import testimonial3 from "@assets/generated_images/Testimonial_client_3_47405afd.png";
-
-const testimonialImages = [testimonial1, testimonial2, testimonial3];
+import { useLocation } from "wouter";
 
 interface Testimonial {
   id: string;
@@ -29,10 +25,8 @@ interface TestimonialsSectionProps {
 
 function TestimonialCard({
   testimonial,
-  index,
 }: {
   testimonial: Testimonial;
-  index: number;
 }) {
   return (
     <Card
@@ -40,8 +34,7 @@ function TestimonialCard({
     >
       <div className="flex items-start gap-4 mb-6">
         <Avatar className="w-16 h-16 border-2 border-primary/20">
-          <AvatarImage src={testimonialImages[index % testimonialImages.length]} alt={testimonial.name} />
-          <AvatarFallback>{testimonial.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          <AvatarFallback className="text-lg font-semibold">{testimonial.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
         </Avatar>
         <div>
           <p className="font-semibold text-base">{testimonial.name}</p>
@@ -58,6 +51,7 @@ function TestimonialCard({
 
 export function TestimonialsSection({ testimonialsData }: TestimonialsSectionProps) {
   const [api, setApi] = useState<CarouselApi>();
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     if (!api) {
@@ -70,6 +64,10 @@ export function TestimonialsSection({ testimonialsData }: TestimonialsSectionPro
 
     return () => clearInterval(interval);
   }, [api]);
+
+  const handleViewAllTestimonials = () => {
+    navigate('/testimonials');
+  };
 
   return (
     <section id="testimonials" className="pt-24 md:pt-32 relative">
@@ -97,8 +95,6 @@ export function TestimonialsSection({ testimonialsData }: TestimonialsSectionPro
                 <CarouselItem key={testimonial.id || index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/3">
                   <TestimonialCard
                     testimonial={testimonial}
-                    index={index}
-                   
                   />
                 </CarouselItem>
               ))}
@@ -107,7 +103,12 @@ export function TestimonialsSection({ testimonialsData }: TestimonialsSectionPro
         </div>
 
         <div className="mt-8 text-center">
-          <Button variant="outline" size="lg" data-testid="button-all-cases">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleViewAllTestimonials}
+            data-testid="button-all-testimonials"
+          >
             Все отзывы <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
