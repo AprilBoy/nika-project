@@ -38,13 +38,14 @@ check_project_directory() {
     fi
 
     # Check if we're in project root (parent directory should have package.json)
-    if [ ! -f "../package.json" ]; then
+    if [ ! -f "../server/package.json" ]; then
         print_error "package.json not found in parent directory. Please run this script from the deployment subdirectory."
         exit 1
     fi
 
-    if [ ! -d "../frontend" ]; then
-        print_error "frontend/ directory not found. Please ensure you're in the correct project structure."
+        # Check if we're in project root (parent directory should have package.json)
+    if [ ! -f "../frontend/package.json" ]; then
+        print_error "package.json not found in parent directory. Please run this script from the deployment subdirectory."
         exit 1
     fi
 
@@ -112,11 +113,11 @@ build_frontend() {
 # --------------------------------------------------------
 run_migrations() {
     print_status "Running database migrations..."
-    if cd .. && npm run migrate; then
-        cd deployment
+    if cd ../server && npm run migrate; then
+        cd ../deployment
         print_success "Database migrations completed successfully"
     else
-        cd deployment
+        cd ../deployment
         print_error "Database migrations failed"
         exit 1
     fi
