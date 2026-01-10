@@ -27,7 +27,7 @@ app.use(express.raw({ type: 'multipart/form-data', limit: '5mb' }));
 app.use(express.static(path.join(projectRoot, 'dist')));
 
 // Serve attached assets
-app.use('/attached_assets', express.static(path.join(projectRoot, 'attached_assets')));
+app.use('/attached_assets', express.static(path.join(projectRoot, 'src/assets')));
 // Serve assets
 app.use('/assets', express.static(path.join(projectRoot, 'assets')));
 // Database is already initialized as db
@@ -84,11 +84,11 @@ app.post('/api/upload/hero-image', async (req, res) => {
         const finalFilename = `hero_image_${uniqueSuffix}${extension}`;
 
         // Save file
-        const filePath = path.join(projectRoot, 'attached_assets/generated_images', finalFilename);
+        const filePath = path.join(projectRoot, 'assets/images', finalFilename);
         fs.writeFileSync(filePath, buffer);
 
         // Return the path to the uploaded image
-        const imagePath = `/attached_assets/generated_images/${finalFilename}`;
+        const imagePath = `/assets/images/${finalFilename}`;
         res.json({ imagePath });
     }
     catch (error) {
@@ -126,11 +126,11 @@ app.post('/api/upload/about-image', async (req, res) => {
         const finalFilename = `about_image_${uniqueSuffix}${extension}`;
 
         // Save file
-        const filePath = path.join(projectRoot, 'attached_assets/generated_images', finalFilename);
+        const filePath = path.join(projectRoot, 'assets/images', finalFilename);
         fs.writeFileSync(filePath, buffer);
 
         // Return the path to the uploaded image
-        const imagePath = `/attached_assets/generated_images/${finalFilename}`;
+        const imagePath = `/assets/images/${finalFilename}`;
         res.json({ imagePath });
     }
     catch (error) {
@@ -142,7 +142,7 @@ app.post('/api/upload/about-image', async (req, res) => {
 // API endpoint to list images in generated_images folder
 app.get('/api/generated-images', async (req, res) => {
     try {
-        const imagesDir = path.join(projectRoot, 'attached_assets/generated_images');
+        const imagesDir = path.join(projectRoot, 'assets/images');
 
         // Check if directory exists
         if (!fs.existsSync(imagesDir)) {
@@ -160,8 +160,8 @@ app.get('/api/generated-images', async (req, res) => {
             })
             .map(file => ({
                 filename: file,
-                url: `/attached_assets/generated_images/${file}`,
-                path: `/attached_assets/generated_images/${file}`
+                url: `/assets/images/${file}`,
+                path: `/assets/images/${file}`
             }));
 
         res.json(imageFiles);

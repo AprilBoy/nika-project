@@ -163,7 +163,7 @@ class AppDatabase {
           primaryCTA: "Связаться",
           secondaryCTA: "Онлайн-консультация",
           telegramLink: "https://t.me/nikashikh",
-          image: "/attached_assets/generated_images/IMG_6236.png"
+          image: "/src/assets/images/IMG_6236.png"
         },
         aboutContent: {
           title: "Кто я?",
@@ -174,7 +174,7 @@ class AppDatabase {
             "Наибольшее кол-во подчиненных в команде - 50 человек",
             "Обучалась у всех лидеров и топов рынка (Гребенюк, Тимочко, Дымшаков и другие)"
           ],
-          image: "/attached_assets/generated_images/IMG_6310.png"
+          image: "/src/assets/images/IMG_6310.png"
         },
         processSteps: [],
         clientSegments: [],

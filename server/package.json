@@ -1,0 +1,26 @@
+{
+  "name": "nika-project-server",
+  "version": "1.0.0",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "server": "node index.js",
+    "server:dev": "nodemon index.js",
+    "migrate": "node scripts/migrate.cjs",
+    "migrate:image": "node scripts/migrate-image-column.js",
+    "dev": "npm run server:dev",
+    "start": "npm run server"
+  },
+  "dependencies": {
+    "@types/better-sqlite3": "^7.6.9",
+    "better-sqlite3": "^12.5.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0",
+    "nodemon": "^3.1.11"
+  }
+}
