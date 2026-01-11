@@ -12,8 +12,8 @@ COPY server/ ./
 # Устанавливаем только production зависимости
 RUN npm ci --omit=dev
 
-# Создаём директорию для БД
-RUN mkdir -p /app/database
+# Создаём директории для БД и assets
+RUN mkdir -p /app/database /app/assets/images
 COPY database/ /app/database/
 
 EXPOSE 3001

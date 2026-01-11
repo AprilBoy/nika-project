@@ -9,6 +9,8 @@ services:
       - "80:80"
     environment:
       - NODE_ENV=production
+    volumes:
+      - ../frontend/public/assets:/usr/share/nginx/html/assets/
     networks:
       - app-network
     depends_on:
@@ -27,12 +29,14 @@ services:
       - PORT=3001
     volumes:
       - db-data:/app/database
-      - ../frontend/public/assets:/usr/share/nginx/html/assets/
+      - assets-data:/app/assets
     networks:
       - app-network
 
 volumes:
   db-data:
+    driver: local
+  assets-data:
     driver: local
 
 networks:

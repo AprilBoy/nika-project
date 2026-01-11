@@ -83,8 +83,14 @@ app.post('/api/upload/hero-image', async (req, res) => {
         const extension = path.extname(filename);
         const finalFilename = `hero_image_${uniqueSuffix}${extension}`;
 
+        // Ensure directory exists
+        const assetsDir = path.join(projectRoot, 'assets/images');
+        if (!fs.existsSync(assetsDir)) {
+            fs.mkdirSync(assetsDir, { recursive: true });
+        }
+
         // Save file
-        const filePath = path.join(projectRoot, 'assets/images', finalFilename);
+        const filePath = path.join(assetsDir, finalFilename);
         fs.writeFileSync(filePath, buffer);
 
         // Return the path to the uploaded image
@@ -125,8 +131,14 @@ app.post('/api/upload/about-image', async (req, res) => {
         const extension = path.extname(filename);
         const finalFilename = `about_image_${uniqueSuffix}${extension}`;
 
+        // Ensure directory exists
+        const assetsDir = path.join(projectRoot, 'assets/images');
+        if (!fs.existsSync(assetsDir)) {
+            fs.mkdirSync(assetsDir, { recursive: true });
+        }
+
         // Save file
-        const filePath = path.join(projectRoot, 'assets/images', finalFilename);
+        const filePath = path.join(assetsDir, finalFilename);
         fs.writeFileSync(filePath, buffer);
 
         // Return the path to the uploaded image
