@@ -7,7 +7,7 @@ const fs = require('fs');
 // Migration to add image field to hero table
 class HeroImageMigration {
   constructor() {
-    const dbPath = path.join(__dirname, '../database/app.db');
+    const dbPath = path.join(__dirname, '../../database/app.db');
 
     // Ensure data directory exists
     const dataDir = path.dirname(dbPath);
@@ -47,7 +47,7 @@ class HeroImageMigration {
 
         this.db.prepare(`
           UPDATE hero SET image = ? WHERE id = 1 AND image IS NULL
-        `).run('/src/assets/images/Nika_hero_portrait_5a7bc603.png');
+        `).run('/assets/images/IMG_6310.png');
 
         console.log('Default image set for existing hero data');
       }

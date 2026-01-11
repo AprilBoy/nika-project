@@ -14,8 +14,8 @@ const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
 
-const DB_PATH = path.join(__dirname, '../database/app.db');
-const DEFAULT_CONTENT_PATH = path.join(__dirname, '../../frontend/src/data/content.json');
+const DB_PATH = path.join(__dirname, '../../database/app.db');
+const DEFAULT_CONTENT_PATH = path.join(__dirname, '../content.json');
 
 function loadDefaultContent() {
   if (!fs.existsSync(DEFAULT_CONTENT_PATH)) {

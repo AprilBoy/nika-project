@@ -4,7 +4,7 @@ const fs = require('fs');
 
 class AppDatabase {
   constructor() {
-    const dbPath = path.join(__dirname, '../../data/app.db');
+    const dbPath = path.join(__dirname, '../../database/app.db');
 
     // Ensure data directory exists
     const dataDir = path.dirname(dbPath);
@@ -163,7 +163,7 @@ class AppDatabase {
           primaryCTA: "Связаться",
           secondaryCTA: "Онлайн-консультация",
           telegramLink: "https://t.me/nikashikh",
-          image: "/src/assets/images/IMG_6236.png"
+          image: "/assets/images/IMG_6236.png"
         },
         aboutContent: {
           title: "Кто я?",
@@ -174,7 +174,7 @@ class AppDatabase {
             "Наибольшее кол-во подчиненных в команде - 50 человек",
             "Обучалась у всех лидеров и топов рынка (Гребенюк, Тимочко, Дымшаков и другие)"
           ],
-          image: "/src/assets/images/IMG_6310.png"
+          image: "/assets/images/IMG_6310.png"
         },
         processSteps: [],
         clientSegments: [],

@@ -37,15 +37,14 @@ check_project_directory() {
         exit 1
     fi
 
-    # Check if we're in project root (parent directory should have package.json)
-    if [ ! -f "../server/package.json" ]; then
-        print_error "package.json not found in parent directory. Please run this script from the deployment subdirectory."
+    # Check if we're in project structure (parent directory should have frontend and server folders)
+    if [ ! -d "../frontend" ] || [ ! -d "../server" ]; then
+        print_error "Project structure not found. Please ensure you're in the deployment subdirectory of the project."
         exit 1
     fi
 
-        # Check if we're in project root (parent directory should have package.json)
-    if [ ! -f "../frontend/package.json" ]; then
-        print_error "package.json not found in parent directory. Please run this script from the deployment subdirectory."
+    if [ ! -f "../server/package.json" ] || [ ! -f "../frontend/package.json" ]; then
+        print_error "package.json files not found. Please ensure both frontend and server have package.json."
         exit 1
     fi
 
@@ -114,10 +113,10 @@ build_frontend() {
 run_migrations() {
     print_status "Running database migrations..."
     if cd ../server && npm run migrate; then
-        cd ../deployment
+        cd deployment
         print_success "Database migrations completed successfully"
     else
-        cd ../deployment
+        cd deployment
         print_error "Database migrations failed"
         exit 1
     fi
@@ -178,7 +177,7 @@ health_check() {
     check_service() {
         local url=$1
         local service_name=$2
-        local max_attempts=5
+        local max_attempts=2
         local attempt=1
 
         while [ $attempt -le $max_attempts ]; do
@@ -254,7 +253,8 @@ show_info() {
     echo "  docker-compose logs -f server      # View backend logs"
     echo "  docker-compose ps                  # Check container status"
     echo "  docker-compose restart             # Restart all services"
-    echo "  docker-compose down                # Stop all services"
+    echo "  docker-compose down --remove-orphans  # Stop all services"
+    echo "  ./clean.sh                         # Complete cleanup (removes volumes too)"
     echo "  cd .. && npm run migrate           # Run database migrations manually"
 }
 
@@ -268,7 +268,6 @@ main() {
     check_docker
     check_ports
     create_backup
-    run_migrations
     deploy_docker
     health_check
     show_info

@@ -7,7 +7,7 @@ const fs = require('fs');
 // Migration to add image field to about table
 class AboutImageMigration {
   constructor() {
-    const dbPath = path.join(__dirname, '../database/app.db');
+    const dbPath = path.join(__dirname, '../../database/app.db');
 
     // Ensure data directory exists
     const dataDir = path.dirname(dbPath);

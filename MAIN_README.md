@@ -45,17 +45,58 @@ This project is split into multiple independent applications:
 ### Production Deployment
 
 ```bash
-# Full deployment with Docker
-cd deployment && ./deploy.sh [environment]
+# Full deployment with Docker (recommended)
+cd deployment
+chmod +x deploy.sh  # Make script executable (first time only)
+./deploy.sh [environment]
+
+# Or use Docker Compose directly
+cd deployment && docker-compose up --build -d
 
 # Or build manually
 cd frontend && npm run build
 cd ..
 npm run migrate
 npm run server
+```
 
-# Or use Docker Compose directly
-cd deployment && docker-compose up --build -d
+### Troubleshooting Docker Issues
+
+If you encounter container name conflicts:
+
+```bash
+# Clean up existing containers and volumes
+cd deployment && ./clean.sh
+
+# Then try deployment again
+```
+
+If you see warnings when stopping services:
+
+```bash
+# Use proper cleanup commands:
+cd deployment && docker-compose down --remove-orphans  # Safe stop
+cd deployment && ./clean.sh                            # Complete cleanup
+```
+
+**Note**: Warnings about missing networks when running `docker-compose down` are normal and can be ignored. They occur when the network was already removed or created with a different project name.
+./deploy.sh [environment]
+```
+
+Or manually:
+
+```bash
+# Stop all containers
+docker-compose down
+
+# Remove specific containers
+docker rm -f nika-project-frontend nika-project-server
+
+# Remove volumes
+docker volume rm nika-project_db-data
+
+# Then deploy
+docker-compose up --build -d
 ```
 
 ## Features

@@ -6,7 +6,7 @@ const fs = require('fs');
 
 class ImageColumnMigration {
   constructor() {
-    const dbPath = path.join(__dirname, '../database/app.db');
+    const dbPath = path.join(__dirname, '../../database/app.db');
 
     // Ensure data directory exists
     const dataDir = path.dirname(dbPath);

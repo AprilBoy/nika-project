@@ -6,22 +6,17 @@ RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
-COPY package*.json ./
+# Копируем файлы
+COPY server/ ./
 
 # Устанавливаем только production зависимости
 RUN npm ci --omit=dev
 
-# Копируем серверные файлы
-COPY server/ ./server/
-COPY scripts/ ./scripts/
-COPY frontend/src/data/ ./src/data/
-COPY frontend/src/assets/ ./assets/
-
 # Создаём директорию для БД
-RUN mkdir -p /app/data
+RUN mkdir -p /app/database
+COPY database/ /app/database/
 
 EXPOSE 3001
 
-# Run migrations and then start server
-CMD ["sh", "-c", "npm run migrate && npm run server"]
+# Run start server
+CMD ["sh", "-c", "npm run server"]

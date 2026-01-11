@@ -1,16 +1,12 @@
-version: '3.8'
-
 services:
   frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
+      context: ..
+      dockerfile: deployment/Dockerfile.frontend
     container_name: nika-project-frontend
     restart: unless-stopped
     ports:
       - "80:80"
-    volumes:
-      - ./frontend/src/assets:/usr/share/nginx/html/src/assets/
     environment:
       - NODE_ENV=production
     networks:
@@ -20,8 +16,8 @@ services:
 
   server:
     build:
-      context: .
-      dockerfile: Dockerfile.server
+      context: ..
+      dockerfile: deployment/Dockerfile.server
     container_name: nika-project-server
     restart: unless-stopped
     ports:
@@ -30,7 +26,8 @@ services:
       - NODE_ENV=production
       - PORT=3001
     volumes:
-      - db-data:/app/data
+      - db-data:/app/database
+      - ../frontend/public/assets:/usr/share/nginx/html/assets/
     networks:
       - app-network
 

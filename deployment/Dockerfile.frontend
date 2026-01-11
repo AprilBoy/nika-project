@@ -2,14 +2,11 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Копируем package.json и package-lock.json
-COPY frontend/package*.json ./
+# Копируем все исходники фронтенда
+COPY frontend/ ./
 
 # Устанавливаем зависимости
 RUN npm ci
-
-# Копируем все исходники фронтенда
-COPY frontend/ .
 
 # Собираем фронтенд (Vite)
 RUN npm run build

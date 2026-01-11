@@ -9,6 +9,7 @@ Docker configuration and deployment scripts for the Nika Project.
 - `Dockerfile.server` - Docker image build configuration for Node.js API server
 - `nginx.conf` - Nginx configuration for serving the frontend
 - `deploy.sh` - Automated deployment script
+- `clean.sh` - Cleanup script for removing old containers and volumes
 
 ## Quick Deployment
 
@@ -17,23 +18,48 @@ Docker configuration and deployment scripts for the Nika Project.
 - Docker and Docker Compose installed
 - Node.js 18+ (for building frontend)
 
-### Setup
+### First Time Setup
 
-First, make the deploy script executable:
+If you get container name conflicts, run the cleanup script first:
 
 ```bash
-chmod +x deploy.sh
+# Clean up existing containers and volumes
+./clean.sh
 ```
 
 ### Deploy
 
 ```bash
-# From deployment directory
-./deploy.sh [environment]
+# Automated deployment
+cd deployment && ./deploy.sh [environment]
 
-# Or manually with Docker Compose
-docker-compose up --build -d
+# Or manual deployment with Docker Compose
+cd deployment && docker-compose up --build -d
 ```
+
+### Troubleshooting
+
+If you encounter container name conflicts:
+
+1. **Stop and clean up:**
+   ```bash
+   ./clean.sh
+   ```
+
+2. **Or manually:**
+   ```bash
+   # Stop containers
+   docker-compose down
+
+   # Remove specific containers
+   docker rm -f nika-project-frontend nika-project-server
+
+   # Remove volumes
+   docker volume rm nika-project_db-data
+
+   # Then try again
+   docker-compose up --build -d
+   ```
 
 ### Services
 
@@ -55,8 +81,11 @@ docker-compose ps
 # Restart services
 docker-compose restart
 
-# Stop services
-docker-compose down
+# Stop services (safe cleanup)
+docker-compose down --remove-orphans
+
+# Or use the cleanup script for complete cleanup
+./clean.sh
 
 # Run database migrations manually
 cd .. && npm run migrate
@@ -71,7 +100,7 @@ project-root/
 ├── frontend/          # React application
 ├── server/            # API server code
 ├── scripts/           # Database migrations
-├── database/          # SQLite database
+├── database/         # SQLite database
 ├── deployment/        # This directory
 │   ├── docker-compose.yml
 │   ├── Dockerfile.frontend

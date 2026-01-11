@@ -49,7 +49,7 @@ if (!defaultContent) {
 
 class MigrationScript {
   constructor() {
-    const dbPath = path.join(__dirname, '../database/app.db');
+    const dbPath = path.join(__dirname, '../../database/app.db');
     const dataDir = path.dirname(dbPath);
 
     if (!fs.existsSync(dataDir)) {
